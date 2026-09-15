@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+.next/
+dist/
+build/
+
+# Env & secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Strix runtime: keep the bundled demo run, ignore new local scan runs
+/backend/strix_runs/*
+!/backend/strix_runs/host-docker-internal-3001_91b4/

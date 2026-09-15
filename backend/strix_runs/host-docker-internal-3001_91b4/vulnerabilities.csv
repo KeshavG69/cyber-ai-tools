@@ -1,0 +1,19 @@
+id,title,severity,timestamp,file
+vuln-0001,Mass assignment of role at registration allows unauthenticated admin account creation,CRITICAL,2026-09-11 19:52:07 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Authentication bypass via unsigned JWT with alg:none (arbitrary identity forgery including admin),CRITICAL,2026-09-11 19:53:07 UTC,vulnerabilities/vuln-0002.md
+vuln-0015,SQL Injection in POST /rest/user/login email parameter allows unauthenticated administrator login,CRITICAL,2026-09-11 20:00:57 UTC,vulnerabilities/vuln-0015.md
+vuln-0006,IDOR: Any authenticated user can modify or delete another user's saved address (PUT/DELETE /api/Addresss/:id),HIGH,2026-09-11 19:56:56 UTC,vulnerabilities/vuln-0006.md
+vuln-0017,UNION-based SQL Injection in GET /rest/products/search q parameter leaks all user credentials,HIGH,2026-09-11 20:01:59 UTC,vulnerabilities/vuln-0017.md
+vuln-0003,Unauthenticated user enumeration and security-question disclosure via /rest/user/security-question,MEDIUM,2026-09-11 19:56:12 UTC,vulnerabilities/vuln-0003.md
+vuln-0004,IDOR: Any authenticated user can read any other user's shopping basket (GET /rest/basket/:id),MEDIUM,2026-09-11 19:56:30 UTC,vulnerabilities/vuln-0004.md
+vuln-0005,IDOR: Any authenticated user can check out another user's basket (POST /rest/basket/:id/checkout),MEDIUM,2026-09-11 19:56:43 UTC,vulnerabilities/vuln-0005.md
+vuln-0007,"Broken access control: any customer can list all users' emails, roles and last-login IPs (GET /api/Users)",MEDIUM,2026-09-11 19:57:09 UTC,vulnerabilities/vuln-0007.md
+vuln-0008,IDOR: Any authenticated user can read all other users' complaints (GET /api/Complaints),MEDIUM,2026-09-11 19:57:19 UTC,vulnerabilities/vuln-0008.md
+vuln-0009,"IDOR: Any authenticated user can read, modify, or delete other users' basket items (/api/BasketItems)",MEDIUM,2026-09-11 19:57:45 UTC,vulnerabilities/vuln-0009.md
+vuln-0010,"Password change via GET with credentials in URL query string, response discloses password hash",MEDIUM,2026-09-11 19:59:30 UTC,vulnerabilities/vuln-0010.md
+vuln-0011,JWTs never expire: missing exp claim and no server-side lifetime validation,MEDIUM,2026-09-11 19:59:55 UTC,vulnerabilities/vuln-0011.md
+vuln-0012,Open redirect in /redirect via substring-based allowlist bypass,MEDIUM,2026-09-11 20:00:12 UTC,vulnerabilities/vuln-0012.md
+vuln-0013,Reflected DOM XSS via q parameter on search results page,MEDIUM,2026-09-11 20:00:28 UTC,vulnerabilities/vuln-0013.md
+vuln-0014,SSRF with response disclosure via /profile/image/url imageUrl fetch,MEDIUM,2026-09-11 20:00:31 UTC,vulnerabilities/vuln-0014.md
+vuln-0016,Negative basket item quantity enables negative-total orders and wallet credit generation,MEDIUM,2026-09-11 20:01:15 UTC,vulnerabilities/vuln-0016.md
+vuln-0018,Wallet top-up accepts arbitrary and negative deposit amounts (unlimited store credit),MEDIUM,2026-09-11 20:02:11 UTC,vulnerabilities/vuln-0018.md

@@ -1,0 +1,2229 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Strix",
+          "informationUri": "https://strix.ai",
+          "rules": [
+            {
+              "id": "vuln-0001",
+              "name": "Mass assignment of role at registration allows unauthenticated admin account creation",
+              "shortDescription": {
+                "text": "Mass assignment of role at registration allows unauthenticated admin account creation"
+              },
+              "fullDescription": {
+                "text": "The user registration endpoint binds the client-supplied `role` field without restriction, allowing any unauthenticated attacker to create an account with the `admin` role and receive a valid admin JWT on login."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "text": "The user registration endpoint binds the client-supplied `role` field without restriction, allowing any unauthenticated attacker to create an account with the `admin` role and receive a valid admin JWT on login.\n\nImmediate full administrator compromise of the application from an unauthenticated position: the attacker can list all user accounts and their data, read/modify any user's basket and orders, modify products and prices, view accounting data, and access all admin functionality. No prior credentials or user interaction required.\n\nRemove the `role` field from the request payload bound at registration and hard-code the default role server-side; maintain an explicit field allowlist for user creation so client-supplied privilege, status, or entitlement fields (role, isActive, deluxeToken) are never persisted. Reject or silently discard any attempt to set a privileged role at the public registration endpoint.",
+                "markdown": "The user registration endpoint binds the client-supplied `role` field without restriction, allowing any unauthenticated attacker to create an account with the `admin` role and receive a valid admin JWT on login.\n\nImmediate full administrator compromise of the application from an unauthenticated position: the attacker can list all user accounts and their data, read/modify any user's basket and orders, modify products and prices, view accounting data, and access all admin functionality. No prior credentials or user interaction required.\n\nRemove the `role` field from the request payload bound at registration and hard-code the default role server-side; maintain an explicit field allowlist for user creation so client-supplied privilege, status, or entitlement fields (role, isActive, deluxeToken) are never persisted. Reject or silently discard any attempt to set a privileged role at the public registration endpoint."
+              },
+              "properties": {
+                "security-severity": "9.4",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "vuln-0002",
+              "name": "Authentication bypass via unsigned JWT with alg:none (arbitrary identity forgery including admin)",
+              "shortDescription": {
+                "text": "Authentication bypass via unsigned JWT with alg:none (arbitrary identity forgery including admin)"
+              },
+              "fullDescription": {
+                "text": "The backend accepts JWTs with algorithm `none` and an empty signature, allowing any unauthenticated attacker to mint a token for an arbitrary identity — including the `admin` role — and receive full authenticated, admin-authorized access."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "text": "The backend accepts JWTs with algorithm `none` and an empty signature, allowing any unauthenticated attacker to mint a token for an arbitrary identity — including the `admin` role — and receive full authenticated, admin-authorized access.\n\nComplete unauthenticated authentication bypass: the attacker impersonates any user or the administrator without knowing any credentials or possessing any key. Demonstrated as the seeded admin (full user list disclosure including all customers' emails and account metadata, cross-user basket access); the same forgery works against any user id for horizontal impersonation of orders, wallets, and personal data, and enables all admin write actions (product/price modification, order delivery status, accounting).\n\nPin the accepted JWT algorithms server-side to the expected signature scheme (RS256) and reject any token whose header declares `alg:none` or any unsigned variant; upgrade the JWT middleware/library to a version that refuses unsigned tokens by default. Additionally, never derive authorization decisions (role, user id, basket id) solely from token claims without validating signature and algorithm first.",
+                "markdown": "The backend accepts JWTs with algorithm `none` and an empty signature, allowing any unauthenticated attacker to mint a token for an arbitrary identity — including the `admin` role — and receive full authenticated, admin-authorized access.\n\nComplete unauthenticated authentication bypass: the attacker impersonates any user or the administrator without knowing any credentials or possessing any key. Demonstrated as the seeded admin (full user list disclosure including all customers' emails and account metadata, cross-user basket access); the same forgery works against any user id for horizontal impersonation of orders, wallets, and personal data, and enables all admin write actions (product/price modification, order delivery status, accounting).\n\nPin the accepted JWT algorithms server-side to the expected signature scheme (RS256) and reject any token whose header declares `alg:none` or any unsigned variant; upgrade the JWT middleware/library to a version that refuses unsigned tokens by default. Additionally, never derive authorization decisions (role, user id, basket id) solely from token claims without validating signature and algorithm first."
+              },
+              "properties": {
+                "security-severity": "9.4",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "vuln-0003",
+              "name": "Unauthenticated user enumeration and security-question disclosure via /rest/user/security-question",
+              "shortDescription": {
+                "text": "Unauthenticated user enumeration and security-question disclosure via /rest/user/security-question"
+              },
+              "fullDescription": {
+                "text": "The unauthenticated security-question lookup endpoint discloses which email addresses are registered (full question object vs empty object) and returns the account's configured security question, providing a username-enumeration oracle and reconnaissance for targeted password-reset attacks."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "The unauthenticated security-question lookup endpoint discloses which email addresses are registered (full question object vs empty object) and returns the account's configured security question, providing a username-enumeration oracle and reconnaissance for targeted password-reset attacks.\n\nAny anonymous attacker can reliably enumerate registered accounts and obtain each account's security question, focusing brute-force and phishing attacks on real users; the question text materially aids guessing the answer for the password-reset flow. On this instance, 28+ seeded accounts are confirmable within seconds. No direct data compromise beyond account existence and question disclosure was demonstrated.\n\nReturn a generic, identical response (e.g., an empty object or a neutral message) regardless of whether the email exists; never disclose the configured security question until the user has proven control of the account through a different channel (e.g., emailed reset link), and rate-limit the lookup.",
+                "markdown": "The unauthenticated security-question lookup endpoint discloses which email addresses are registered (full question object vs empty object) and returns the account's configured security question, providing a username-enumeration oracle and reconnaissance for targeted password-reset attacks.\n\nAny anonymous attacker can reliably enumerate registered accounts and obtain each account's security question, focusing brute-force and phishing attacks on real users; the question text materially aids guessing the answer for the password-reset flow. On this instance, 28+ seeded accounts are confirmable within seconds. No direct data compromise beyond account existence and question disclosure was demonstrated.\n\nReturn a generic, identical response (e.g., an empty object or a neutral message) regardless of whether the email exists; never disclose the configured security question until the user has proven control of the account through a different channel (e.g., emailed reset link), and rate-limit the lookup."
+              },
+              "properties": {
+                "security-severity": "5.3",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "CWE-639",
+              "name": "IDOR: Any authenticated user can read any other user's shopping basket (GET /rest/basket/:id)",
+              "shortDescription": {
+                "text": "IDOR: Any authenticated user can read any other user's shopping basket (GET /rest/basket/:id)"
+              },
+              "fullDescription": {
+                "text": "The `GET /rest/basket/:id` endpoint returns any user's shopping basket to any authenticated customer. The server validates the JWT but never checks that the requested basket ID belongs to the token's user, allowing a logged-in customer to enumerate and read every other user's basket, including current product selections, quantities, and prices."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "The `GET /rest/basket/:id` endpoint returns any user's shopping basket to any authenticated customer. The server validates the JWT but never checks that the requested basket ID belongs to the token's user, allowing a logged-in customer to enumerate and read every other user's basket, including current product selections, quantities, and prices.\n\nAny registered customer can enumerate baskets 1..N and read every other user's shopping activity in real time: which products they intend to buy, quantities, and prices. This is a direct disclosure of other users' purchase-intent data (business-confidential in a real shop) with trivially guessable integer IDs.\n\nBind the basket lookup to the authenticated principal: after JWT validation, derive the basket ID from the token's `bid` claim (as the application already does for the caller's own basket) or, when an explicit ID is accepted, query with a `where` clause on both the requested basket ID and the token user's ID, returning a 403/404 on mismatch. Do not rely on the client to pass its own basket ID.",
+                "markdown": "The `GET /rest/basket/:id` endpoint returns any user's shopping basket to any authenticated customer. The server validates the JWT but never checks that the requested basket ID belongs to the token's user, allowing a logged-in customer to enumerate and read every other user's basket, including current product selections, quantities, and prices.\n\nAny registered customer can enumerate baskets 1..N and read every other user's shopping activity in real time: which products they intend to buy, quantities, and prices. This is a direct disclosure of other users' purchase-intent data (business-confidential in a real shop) with trivially guessable integer IDs.\n\nBind the basket lookup to the authenticated principal: after JWT validation, derive the basket ID from the token's `bid` claim (as the application already does for the caller's own basket) or, when an explicit ID is accepted, query with a `where` clause on both the requested basket ID and the token user's ID, returning a 403/404 on mismatch. Do not rely on the client to pass its own basket ID."
+              },
+              "properties": {
+                "security-severity": "4.3",
+                "tags": [
+                  "security",
+                  "CWE-639",
+                  "stride:E"
+                ]
+              },
+              "helpUri": "https://cwe.mitre.org/data/definitions/639.html"
+            },
+            {
+              "id": "CWE-862",
+              "name": "Broken access control: any customer can list all users' emails, roles and last-login IPs (GET /api/Users)",
+              "shortDescription": {
+                "text": "Broken access control: any customer can list all users' emails, roles and last-login IPs (GET /api/Users)"
+              },
+              "fullDescription": {
+                "text": "Any authenticated customer can retrieve the complete user directory: `GET /api/Users` returns every registered account's email, role, last-login IP, profile image and activity flags, and `GET /api/Users/:id` exposes any individual record. The endpoint requires authentication but performs no role check — a plain customer receives the admin account's record alongside all other users'."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "Any authenticated customer can retrieve the complete user directory: `GET /api/Users` returns every registered account's email, role, last-login IP, profile image and activity flags, and `GET /api/Users/:id` exposes any individual record. The endpoint requires authentication but performs no role check — a plain customer receives the admin account's record alongside all other users'.\n\nAny customer obtains a complete mailing list of all users including the administrator's account identity (email + role), plus per-user last-login IP addresses — reconnaissance material for credential attacks, phishing, and targeted privilege-escalation attempts against the admin account. Enumeration of valid emails also feeds the password-reset and security-question flows.\n\nRestrict user-record reads to privileged roles: require an admin role claim in the JWT on `GET /api/Users` and `GET /api/Users/:id`, and return 403 for other roles. If customers legitimately need their own record, expose only `GET /api/Users/<own id>` resolved from the token, never a directory listing.",
+                "markdown": "Any authenticated customer can retrieve the complete user directory: `GET /api/Users` returns every registered account's email, role, last-login IP, profile image and activity flags, and `GET /api/Users/:id` exposes any individual record. The endpoint requires authentication but performs no role check — a plain customer receives the admin account's record alongside all other users'.\n\nAny customer obtains a complete mailing list of all users including the administrator's account identity (email + role), plus per-user last-login IP addresses — reconnaissance material for credential attacks, phishing, and targeted privilege-escalation attempts against the admin account. Enumeration of valid emails also feeds the password-reset and security-question flows.\n\nRestrict user-record reads to privileged roles: require an admin role claim in the JWT on `GET /api/Users` and `GET /api/Users/:id`, and return 403 for other roles. If customers legitimately need their own record, expose only `GET /api/Users/<own id>` resolved from the token, never a directory listing."
+              },
+              "properties": {
+                "security-severity": "4.3",
+                "tags": [
+                  "security",
+                  "CWE-862",
+                  "stride:E"
+                ]
+              },
+              "helpUri": "https://cwe.mitre.org/data/definitions/862.html"
+            },
+            {
+              "id": "vuln-0010",
+              "name": "Password change via GET with credentials in URL query string, response discloses password hash",
+              "shortDescription": {
+                "text": "Password change via GET with credentials in URL query string, response discloses password hash"
+              },
+              "fullDescription": {
+                "text": "The password-change operation is performed via `GET /rest/user/change-password` with the current and new passwords transmitted as URL query-string parameters, causing credentials to be stored in browser history, proxy logs, and server access logs. The successful response additionally returns the user's full record including the (unsalted MD5) password hash."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "The password-change operation is performed via `GET /rest/user/change-password` with the current and new passwords transmitted as URL query-string parameters, causing credentials to be stored in browser history, proxy logs, and server access logs. The successful response additionally returns the user's full record including the (unsalted MD5) password hash.\n\nCurrent and new passwords persist in cleartext in URL-based log stores (browser history, proxies, referer headers, server access logs), which in a real deployment exposes user credentials to anyone with log access. The response hash disclosure (plus unsalted MD5 password storage) enables offline cracking of the user's password. No cross-user modification was demonstrated; the attacker must already hold a valid session token for this account.\n\nMove the password-change operation to a `POST`/`PUT` endpoint with credentials in the request body over TLS; never place passwords in URLs. Stop returning the password hash (or any password-derived value) in API responses, and replace unsalted MD5 password hashing with a dedicated password hash such as bcrypt, scrypt, or Argon2.",
+                "markdown": "The password-change operation is performed via `GET /rest/user/change-password` with the current and new passwords transmitted as URL query-string parameters, causing credentials to be stored in browser history, proxy logs, and server access logs. The successful response additionally returns the user's full record including the (unsalted MD5) password hash.\n\nCurrent and new passwords persist in cleartext in URL-based log stores (browser history, proxies, referer headers, server access logs), which in a real deployment exposes user credentials to anyone with log access. The response hash disclosure (plus unsalted MD5 password storage) enables offline cracking of the user's password. No cross-user modification was demonstrated; the attacker must already hold a valid session token for this account.\n\nMove the password-change operation to a `POST`/`PUT` endpoint with credentials in the request body over TLS; never place passwords in URLs. Stop returning the password hash (or any password-derived value) in API responses, and replace unsalted MD5 password hashing with a dedicated password hash such as bcrypt, scrypt, or Argon2."
+              },
+              "properties": {
+                "security-severity": "4.3",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "vuln-0011",
+              "name": "JWTs never expire: missing exp claim and no server-side lifetime validation",
+              "shortDescription": {
+                "text": "JWTs never expire: missing exp claim and no server-side lifetime validation"
+              },
+              "fullDescription": {
+                "text": "Session JWTs contain no `exp` (or `nbf`) claim and the backend performs no lifetime validation, so issued tokens never expire and can be replayed indefinitely — including tokens whose `iat` dates back decades."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "Session JWTs contain no `exp` (or `nbf`) claim and the backend performs no lifetime validation, so issued tokens never expire and can be replayed indefinitely — including tokens whose `iat` dates back decades.\n\nOnce a token is obtained (via XSS exfiltration, log/proxy capture, or the credential-in-URL exposure reported separately), the attacker retains permanent access to the victim account — password changes by the victim do not invalidate it. Combined with the token payload embedding the full user record (including password hash and totpSecret), a captured token never loses value.\n\nAdd a short `exp` claim to every issued JWT and enforce expiry (with a small clock-skew tolerance) in the verification middleware; implement logout-time revocation (e.g., a server-side denylist keyed on `jti`) so password changes and logouts invalidate outstanding sessions. Avoid embedding the full user record in the token payload.",
+                "markdown": "Session JWTs contain no `exp` (or `nbf`) claim and the backend performs no lifetime validation, so issued tokens never expire and can be replayed indefinitely — including tokens whose `iat` dates back decades.\n\nOnce a token is obtained (via XSS exfiltration, log/proxy capture, or the credential-in-URL exposure reported separately), the attacker retains permanent access to the victim account — password changes by the victim do not invalidate it. Combined with the token payload embedding the full user record (including password hash and totpSecret), a captured token never loses value.\n\nAdd a short `exp` claim to every issued JWT and enforce expiry (with a small clock-skew tolerance) in the verification middleware; implement logout-time revocation (e.g., a server-side denylist keyed on `jti`) so password changes and logouts invalidate outstanding sessions. Avoid embedding the full user record in the token payload."
+              },
+              "properties": {
+                "security-severity": "6.5",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "vuln-0012",
+              "name": "Open redirect in /redirect via substring-based allowlist bypass",
+              "shortDescription": {
+                "text": "Open redirect in /redirect via substring-based allowlist bypass"
+              },
+              "fullDescription": {
+                "text": "The `/redirect` endpoint validates the `to` parameter against a URL allowlist using a substring (`includes`) check instead of exact matching. Any URL that embeds an allowlisted string anywhere — for example as userinfo credentials — passes validation, producing a 302 redirect to an attacker-controlled host."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "The `/redirect` endpoint validates the `to` parameter against a URL allowlist using a substring (`includes`) check instead of exact matching. Any URL that embeds an allowlisted string anywhere — for example as userinfo credentials — passes validation, producing a 302 redirect to an attacker-controlled host.\n\nAn attacker can craft a link on the trusted application origin (e.g. `/redirect?to=https://github.com/juice-shop/juice-shop@evil.com`) that silently lands victims on an arbitrary external site, enabling credential phishing and token interception while the browser address bar initially shows the trusted origin. In this instance the impact is phishing/brand abuse only (no OAuth/redirect_uri flow was observed consuming this endpoint).\n\nReplace the substring check with exact-match validation: parse the `to` parameter with a single URL parser and require the full URL to exactly equal one allowlisted entry (or to match an exact scheme + host + path-prefix allowlist after canonicalization). Reject any URL containing userinfo (`@` in the authority component), and treat query/fragment differences as mismatches.",
+                "markdown": "The `/redirect` endpoint validates the `to` parameter against a URL allowlist using a substring (`includes`) check instead of exact matching. Any URL that embeds an allowlisted string anywhere — for example as userinfo credentials — passes validation, producing a 302 redirect to an attacker-controlled host.\n\nAn attacker can craft a link on the trusted application origin (e.g. `/redirect?to=https://github.com/juice-shop/juice-shop@evil.com`) that silently lands victims on an arbitrary external site, enabling credential phishing and token interception while the browser address bar initially shows the trusted origin. In this instance the impact is phishing/brand abuse only (no OAuth/redirect_uri flow was observed consuming this endpoint).\n\nReplace the substring check with exact-match validation: parse the `to` parameter with a single URL parser and require the full URL to exactly equal one allowlisted entry (or to match an exact scheme + host + path-prefix allowlist after canonicalization). Reject any URL containing userinfo (`@` in the authority component), and treat query/fragment differences as mismatches."
+              },
+              "properties": {
+                "security-severity": "4.3",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "CWE-79",
+              "name": "Reflected DOM XSS via q parameter on search results page",
+              "shortDescription": {
+                "text": "Reflected DOM XSS via q parameter on search results page"
+              },
+              "fullDescription": {
+                "text": "The `q` query parameter on the search results page is passed unsanitized through `sanitizer.bypassSecurityTrustHtml()` and rendered via Angular `[innerHTML]`, allowing arbitrary script execution in any victim's browser when they follow an attacker-crafted link."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "The `q` query parameter on the search results page is passed unsanitized through `sanitizer.bypassSecurityTrustHtml()` and rendered via Angular `[innerHTML]`, allowing arbitrary script execution in any victim's browser when they follow an attacker-crafted link.\n\nAn attacker can craft a link that executes arbitrary JavaScript in any Juice Shop user's browser. Juice Shop stores its JWT in a `token` cookie readable via same-origin script, enabling session theft, account takeover, unauthorized purchases, and defacement of the victim's view. Requires the victim to click a link.\n\nRemove the `bypassSecurityTrustHtml` call on the search query value and render it as plain interpolated text instead of `[innerHTML]`, so Angular's default contextual escaping applies. If rich rendering is genuinely required, run the value through DOMPurify before binding, and add a Content-Security-Policy header without `unsafe-inline` as a second layer of defense.",
+                "markdown": "The `q` query parameter on the search results page is passed unsanitized through `sanitizer.bypassSecurityTrustHtml()` and rendered via Angular `[innerHTML]`, allowing arbitrary script execution in any victim's browser when they follow an attacker-crafted link.\n\nAn attacker can craft a link that executes arbitrary JavaScript in any Juice Shop user's browser. Juice Shop stores its JWT in a `token` cookie readable via same-origin script, enabling session theft, account takeover, unauthorized purchases, and defacement of the victim's view. Requires the victim to click a link.\n\nRemove the `bypassSecurityTrustHtml` call on the search query value and render it as plain interpolated text instead of `[innerHTML]`, so Angular's default contextual escaping applies. If rich rendering is genuinely required, run the value through DOMPurify before binding, and add a Content-Security-Policy header without `unsafe-inline` as a second layer of defense."
+              },
+              "properties": {
+                "security-severity": "5.4",
+                "tags": [
+                  "security",
+                  "CWE-79",
+                  "stride:T",
+                  "stride:I"
+                ]
+              },
+              "helpUri": "https://cwe.mitre.org/data/definitions/79.html"
+            },
+            {
+              "id": "vuln-0014",
+              "name": "SSRF with response disclosure via /profile/image/url imageUrl fetch",
+              "shortDescription": {
+                "text": "SSRF with response disclosure via /profile/image/url imageUrl fetch"
+              },
+              "fullDescription": {
+                "text": "The profile image URL upload feature accepts a user-supplied `imageUrl` and performs a server-side `fetch()` of that URL with no allowlist, scheme, or IP-range validation. Any authenticated user can make the application server issue HTTP requests to arbitrary internal or external destinations, and the fetched response body is persisted and retrievable."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "The profile image URL upload feature accepts a user-supplied `imageUrl` and performs a server-side `fetch()` of that URL with no allowlist, scheme, or IP-range validation. Any authenticated user can make the application server issue HTTP requests to arbitrary internal or external destinations, and the fetched response body is persisted and retrievable.\n\nAn authenticated attacker can (1) reach internal-only services from the application server's network position (demonstrated against the app's own loopback API with content returned to the attacker), and (2) make the server fetch any external host, with the response body stored server-side and downloadable by the attacker. This enables internal network reconnaissance, access to services not exposed to clients, and potential cloud-metadata credential theft on cloud deployments.\n\nValidate the `imageUrl` server-side before fetching: resolve the hostname and reject loopback, link-local (169.254.0.0/16), and RFC1918/private ranges; restrict the scheme to https (or http plus an explicit origin allowlist); do not follow redirects; and enforce a response size and content-type allowlist. Alternatively, proxy image uploads through a dedicated egress-restricted fetcher and never persist raw response bodies to user-accessible assets.",
+                "markdown": "The profile image URL upload feature accepts a user-supplied `imageUrl` and performs a server-side `fetch()` of that URL with no allowlist, scheme, or IP-range validation. Any authenticated user can make the application server issue HTTP requests to arbitrary internal or external destinations, and the fetched response body is persisted and retrievable.\n\nAn authenticated attacker can (1) reach internal-only services from the application server's network position (demonstrated against the app's own loopback API with content returned to the attacker), and (2) make the server fetch any external host, with the response body stored server-side and downloadable by the attacker. This enables internal network reconnaissance, access to services not exposed to clients, and potential cloud-metadata credential theft on cloud deployments.\n\nValidate the `imageUrl` server-side before fetching: resolve the hostname and reject loopback, link-local (169.254.0.0/16), and RFC1918/private ranges; restrict the scheme to https (or http plus an explicit origin allowlist); do not follow redirects; and enforce a response size and content-type allowlist. Alternatively, proxy image uploads through a dedicated egress-restricted fetcher and never persist raw response bodies to user-accessible assets."
+              },
+              "properties": {
+                "security-severity": "6.4",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "vuln-0015",
+              "name": "SQL Injection in POST /rest/user/login email parameter allows unauthenticated administrator login",
+              "shortDescription": {
+                "text": "SQL Injection in POST /rest/user/login email parameter allows unauthenticated administrator login"
+              },
+              "fullDescription": {
+                "text": "The **`email`** parameter of the login endpoint is interpolated directly into a raw SQL query. Supplying `' OR 1=1--` (any password) returns a valid session for the first matching row — the administrator account — including its full JWT and password hash."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "text": "The **`email`** parameter of the login endpoint is interpolated directly into a raw SQL query. Supplying `' OR 1=1--` (any password) returns a valid session for the first matching row — the administrator account — including its full JWT and password hash.\n\nComplete authentication bypass without any credentials: the attacker is logged in as the administrator (user id 1) and receives a valid admin JWT. The JWT payload itself also discloses the admin's password hash and TOTP secret. Using the token, the admin-only API was accessed successfully (GET /api/Users returned the full user list). In a production analogue this grants full application administration and database write access.\n\nReplace the raw SQL string interpolation in the login query with Sequelize's parameterized query API (e.g. `sequelize.query` with bind parameters or `Model.findAll` with a where object), so the email value is bound as data rather than concatenated into SQL text. Reject or escape quote characters in the email field as defense in depth, and ensure the login query selects by exact email match rather than a concatenated fragment.",
+                "markdown": "The **`email`** parameter of the login endpoint is interpolated directly into a raw SQL query. Supplying `' OR 1=1--` (any password) returns a valid session for the first matching row — the administrator account — including its full JWT and password hash.\n\nComplete authentication bypass without any credentials: the attacker is logged in as the administrator (user id 1) and receives a valid admin JWT. The JWT payload itself also discloses the admin's password hash and TOTP secret. Using the token, the admin-only API was accessed successfully (GET /api/Users returned the full user list). In a production analogue this grants full application administration and database write access.\n\nReplace the raw SQL string interpolation in the login query with Sequelize's parameterized query API (e.g. `sequelize.query` with bind parameters or `Model.findAll` with a where object), so the email value is bound as data rather than concatenated into SQL text. Reject or escape quote characters in the email field as defense in depth, and ensure the login query selects by exact email match rather than a concatenated fragment."
+              },
+              "properties": {
+                "security-severity": "9.1",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "vuln-0016",
+              "name": "Negative basket item quantity enables negative-total orders and wallet credit generation",
+              "shortDescription": {
+                "text": "Negative basket item quantity enables negative-total orders and wallet credit generation"
+              },
+              "fullDescription": {
+                "text": "The basket item quantity endpoint PUT /api/BasketItems/:id accepts negative quantities, producing negative basket totals. Checkout then processes the negative-total order, crediting the paying wallet instead of debiting it — a repeatable money-printing primitive for any authenticated customer."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "The basket item quantity endpoint PUT /api/BasketItems/:id accepts negative quantities, producing negative basket totals. Checkout then processes the negative-total order, crediting the paying wallet instead of debiting it — a repeatable money-printing primitive for any authenticated customer.\n\nAny authenticated customer can create orders with arbitrary negative totals and, by paying with the wallet, permanently increase their wallet balance by the negated amount — infinitely repeatable. The order history stores negative-priced orders and negative quantities, corrupting accounting records. In a real store this is direct financial fraud: unlimited store credit generation and unbounded ledger corruption.\n\nEnforce a positive-integer minimum (>= 1) on basket item quantity on the server at PUT /api/BasketItems/:id and at POST /api/BasketItems, using the same server-side tamper guard already applied to warehouse quantities (PUT /api/Quantitys/:id). Recompute and validate the order total server-side at checkout, rejecting any order whose total is not a positive number before any payment or wallet mutation is applied.",
+                "markdown": "The basket item quantity endpoint PUT /api/BasketItems/:id accepts negative quantities, producing negative basket totals. Checkout then processes the negative-total order, crediting the paying wallet instead of debiting it — a repeatable money-printing primitive for any authenticated customer.\n\nAny authenticated customer can create orders with arbitrary negative totals and, by paying with the wallet, permanently increase their wallet balance by the negated amount — infinitely repeatable. The order history stores negative-priced orders and negative quantities, corrupting accounting records. In a real store this is direct financial fraud: unlimited store credit generation and unbounded ledger corruption.\n\nEnforce a positive-integer minimum (>= 1) on basket item quantity on the server at PUT /api/BasketItems/:id and at POST /api/BasketItems, using the same server-side tamper guard already applied to warehouse quantities (PUT /api/Quantitys/:id). Recompute and validate the order total server-side at checkout, rejecting any order whose total is not a positive number before any payment or wallet mutation is applied."
+              },
+              "properties": {
+                "security-severity": "6.5",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "vuln-0017",
+              "name": "UNION-based SQL Injection in GET /rest/products/search q parameter leaks all user credentials",
+              "shortDescription": {
+                "text": "UNION-based SQL Injection in GET /rest/products/search q parameter leaks all user credentials"
+              },
+              "fullDescription": {
+                "text": "The **`q`** parameter of the product search endpoint is concatenated into a raw SQL query on the backend. A UNION-based payload extracts arbitrary database content; all 28 users' emails and password hashes were dumped unauthenticated."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "text": "The **`q`** parameter of the product search endpoint is concatenated into a raw SQL query on the backend. A UNION-based payload extracts arbitrary database content; all 28 users' emails and password hashes were dumped unauthenticated.\n\nUnauthenticated full-database read access: the entire Users table (emails and MD5 password hashes for all 28 accounts, including the administrator) was extracted, along with the complete database schema via sqlite_master. No authentication or user interaction is required.\n\nReplace the raw SQL string concatenation used for search with Sequelize's parameterized query API (bound parameters or a where-clause object), never interpolating the q value into query text. Apply allowlist validation on the search term (e.g. rejecting quotes and SQL metacharacters) only as defense in depth, not as the primary control.",
+                "markdown": "The **`q`** parameter of the product search endpoint is concatenated into a raw SQL query on the backend. A UNION-based payload extracts arbitrary database content; all 28 users' emails and password hashes were dumped unauthenticated.\n\nUnauthenticated full-database read access: the entire Users table (emails and MD5 password hashes for all 28 accounts, including the administrator) was extracted, along with the complete database schema via sqlite_master. No authentication or user interaction is required.\n\nReplace the raw SQL string concatenation used for search with Sequelize's parameterized query API (bound parameters or a where-clause object), never interpolating the q value into query text. Apply allowlist validation on the search term (e.g. rejecting quotes and SQL metacharacters) only as defense in depth, not as the primary control."
+              },
+              "properties": {
+                "security-severity": "7.5",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "vuln-0018",
+              "name": "Wallet top-up accepts arbitrary and negative deposit amounts (unlimited store credit)",
+              "shortDescription": {
+                "text": "Wallet top-up accepts arbitrary and negative deposit amounts (unlimited store credit)"
+              },
+              "fullDescription": {
+                "text": "The wallet top-up endpoint PUT /rest/wallet/balance treats the client-supplied \"balance\" field as a deposit amount and adds it to the current balance with no validation. A customer can supply an arbitrary positive amount (unlimited store credit with no real charge) or a negative amount, driving the wallet balance below zero."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "text": "The wallet top-up endpoint PUT /rest/wallet/balance treats the client-supplied \"balance\" field as a deposit amount and adds it to the current balance with no validation. A customer can supply an arbitrary positive amount (unlimited store credit with no real charge) or a negative amount, driving the wallet balance below zero.\n\nAny authenticated customer can grant themselves unlimited store credit (observed: 5000 credited with no charge to any funding source) and can drive their wallet balance arbitrarily negative. In a real deployment this is direct financial loss: the attacker orders merchandise against self-minted balance. The negative-balance direction also enables further negative-total/wallet interplay.\n\nValidate the deposit amount server-side at PUT /rest/wallet/balance: require a positive value, and enforce sane per-transaction and cumulative deposit limits. Do not trust the client-supplied \"balance\"/amount field as the deposit amount at all — derive the credited amount from a server-side payment-provider confirmation. Reject negative amounts explicitly before mutating the wallet.",
+                "markdown": "The wallet top-up endpoint PUT /rest/wallet/balance treats the client-supplied \"balance\" field as a deposit amount and adds it to the current balance with no validation. A customer can supply an arbitrary positive amount (unlimited store credit with no real charge) or a negative amount, driving the wallet balance below zero.\n\nAny authenticated customer can grant themselves unlimited store credit (observed: 5000 credited with no charge to any funding source) and can drive their wallet balance arbitrarily negative. In a real deployment this is direct financial loss: the attacker orders merchandise against self-minted balance. The negative-balance direction also enables further negative-total/wallet interplay.\n\nValidate the deposit amount server-side at PUT /rest/wallet/balance: require a positive value, and enforce sane per-transaction and cumulative deposit limits. Do not trust the client-supplied \"balance\"/amount field as the deposit amount at all — derive the credited amount from a server-side payment-provider confirmation. Reject negative amounts explicitly before mutating the wallet."
+              },
+              "properties": {
+                "security-severity": "6.5",
+                "tags": [
+                  "security",
+                  "stride:T",
+                  "stride:I"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/idor-cross-user-coupon-application",
+              "name": "IDOR — cross-user coupon application",
+              "shortDescription": {
+                "text": "Coverage: IDOR — cross-user coupon application"
+              },
+              "fullDescription": {
+                "text": "Coverage of IDOR — cross-user coupon application across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of IDOR — cross-user coupon application across the assessed attack surface.",
+                "markdown": "Coverage of IDOR — cross-user coupon application across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/idor-cross-user-payment-card-access",
+              "name": "IDOR — cross-user payment card access",
+              "shortDescription": {
+                "text": "Coverage: IDOR — cross-user payment card access"
+              },
+              "fullDescription": {
+                "text": "Coverage of IDOR — cross-user payment card access across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of IDOR — cross-user payment card access across the assessed attack surface.",
+                "markdown": "Coverage of IDOR — cross-user payment card access across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/idor-cross-user-address-read",
+              "name": "IDOR — cross-user address read",
+              "shortDescription": {
+                "text": "Coverage: IDOR — cross-user address read"
+              },
+              "fullDescription": {
+                "text": "Coverage of IDOR — cross-user address read across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of IDOR — cross-user address read across the assessed attack surface.",
+                "markdown": "Coverage of IDOR — cross-user address read across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/broken-access-control-cross-user-record-modification-and-security-answer-disclosure",
+              "name": "Broken access control — cross-user record modification and security-answer disclosure",
+              "shortDescription": {
+                "text": "Coverage: Broken access control — cross-user record modification and security-answer disclosure"
+              },
+              "fullDescription": {
+                "text": "Coverage of Broken access control — cross-user record modification and security-answer disclosure across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Broken access control — cross-user record modification and security-answer disclosure across the assessed attack surface.",
+                "markdown": "Coverage of Broken access control — cross-user record modification and security-answer disclosure across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/bfla-admin-function-level-authorization-with-customer-jwt",
+              "name": "BFLA — admin function-level authorization with customer JWT",
+              "shortDescription": {
+                "text": "Coverage: BFLA — admin function-level authorization with customer JWT"
+              },
+              "fullDescription": {
+                "text": "Coverage of BFLA — admin function-level authorization with customer JWT across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of BFLA — admin function-level authorization with customer JWT across the assessed attack surface.",
+                "markdown": "Coverage of BFLA — admin function-level authorization with customer JWT across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/broken-access-control-unauthenticated-admin-configuration-disclosure",
+              "name": "Broken access control — unauthenticated admin configuration disclosure",
+              "shortDescription": {
+                "text": "Coverage: Broken access control — unauthenticated admin configuration disclosure"
+              },
+              "fullDescription": {
+                "text": "Coverage of Broken access control — unauthenticated admin configuration disclosure across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Broken access control — unauthenticated admin configuration disclosure across the assessed attack surface.",
+                "markdown": "Coverage of Broken access control — unauthenticated admin configuration disclosure across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/llm01-direct-prompt-injection-system-prompt-extraction-llm07-08",
+              "name": "LLM01 direct prompt injection / system prompt extraction (LLM07/08)",
+              "shortDescription": {
+                "text": "Coverage: LLM01 direct prompt injection / system prompt extraction (LLM07/08)"
+              },
+              "fullDescription": {
+                "text": "Coverage of LLM01 direct prompt injection / system prompt extraction (LLM07/08) across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of LLM01 direct prompt injection / system prompt extraction (LLM07/08) across the assessed attack surface.",
+                "markdown": "Coverage of LLM01 direct prompt injection / system prompt extraction (LLM07/08) across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/llm03-excessive-agency-tool-call-abuse-cross-user-actions-hidden-data",
+              "name": "LLM03 excessive agency / tool-call abuse (cross-user actions, hidden data)",
+              "shortDescription": {
+                "text": "Coverage: LLM03 excessive agency / tool-call abuse (cross-user actions, hidden data)"
+              },
+              "fullDescription": {
+                "text": "Coverage of LLM03 excessive agency / tool-call abuse (cross-user actions, hidden data) across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of LLM03 excessive agency / tool-call abuse (cross-user actions, hidden data) across the assessed attack surface.",
+                "markdown": "Coverage of LLM03 excessive agency / tool-call abuse (cross-user actions, hidden data) across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/llm01-indirect-prompt-injection-via-product-reviews-feedback",
+              "name": "LLM01 indirect prompt injection via product reviews/feedback",
+              "shortDescription": {
+                "text": "Coverage: LLM01 indirect prompt injection via product reviews/feedback"
+              },
+              "fullDescription": {
+                "text": "Coverage of LLM01 indirect prompt injection via product reviews/feedback across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of LLM01 indirect prompt injection via product reviews/feedback across the assessed attack surface.",
+                "markdown": "Coverage of LLM01 indirect prompt injection via product reviews/feedback across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/llm10-improper-output-handling-xss-via-rendered-chat-output",
+              "name": "LLM10 improper output handling (XSS via rendered chat output)",
+              "shortDescription": {
+                "text": "Coverage: LLM10 improper output handling (XSS via rendered chat output)"
+              },
+              "fullDescription": {
+                "text": "Coverage of LLM10 improper output handling (XSS via rendered chat output) across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of LLM10 improper output handling (XSS via rendered chat output) across the assessed attack surface.",
+                "markdown": "Coverage of LLM10 improper output handling (XSS via rendered chat output) across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/sql-injection",
+              "name": "SQL injection",
+              "shortDescription": {
+                "text": "Coverage: SQL injection"
+              },
+              "fullDescription": {
+                "text": "Coverage of SQL injection across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of SQL injection across the assessed attack surface.",
+                "markdown": "Coverage of SQL injection across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/stored-xss-in-feedback-comment",
+              "name": "Stored XSS in feedback comment",
+              "shortDescription": {
+                "text": "Coverage: Stored XSS in feedback comment"
+              },
+              "fullDescription": {
+                "text": "Coverage of Stored XSS in feedback comment across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Stored XSS in feedback comment across the assessed attack surface.",
+                "markdown": "Coverage of Stored XSS in feedback comment across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/2fa-bypass-totpsecret-leakage",
+              "name": "2FA bypass / totpSecret leakage",
+              "shortDescription": {
+                "text": "Coverage: 2FA bypass / totpSecret leakage"
+              },
+              "fullDescription": {
+                "text": "Coverage of 2FA bypass / totpSecret leakage across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of 2FA bypass / totpSecret leakage across the assessed attack surface.",
+                "markdown": "Coverage of 2FA bypass / totpSecret leakage across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/stored-xss-in-product-reviews",
+              "name": "Stored XSS in product reviews",
+              "shortDescription": {
+                "text": "Coverage: Stored XSS in product reviews"
+              },
+              "fullDescription": {
+                "text": "Coverage of Stored XSS in product reviews across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Stored XSS in product reviews across the assessed attack surface.",
+                "markdown": "Coverage of Stored XSS in product reviews across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/stored-xss-via-product-description-innerhtml-sink",
+              "name": "Stored XSS via product description innerHTML sink",
+              "shortDescription": {
+                "text": "Coverage: Stored XSS via product description innerHTML sink"
+              },
+              "fullDescription": {
+                "text": "Coverage of Stored XSS via product description innerHTML sink across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Stored XSS via product description innerHTML sink across the assessed attack surface.",
+                "markdown": "Coverage of Stored XSS via product description innerHTML sink across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/ssrf-server-side-request-forgery",
+              "name": "SSRF / server-side request forgery",
+              "shortDescription": {
+                "text": "Coverage: SSRF / server-side request forgery"
+              },
+              "fullDescription": {
+                "text": "Coverage of SSRF / server-side request forgery across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of SSRF / server-side request forgery across the assessed attack surface.",
+                "markdown": "Coverage of SSRF / server-side request forgery across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/ssrf-via-llm-chatbot-b2b-orders",
+              "name": "SSRF via LLM chatbot / B2B orders",
+              "shortDescription": {
+                "text": "Coverage: SSRF via LLM chatbot / B2B orders"
+              },
+              "fullDescription": {
+                "text": "Coverage of SSRF via LLM chatbot / B2B orders across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of SSRF via LLM chatbot / B2B orders across the assessed attack surface.",
+                "markdown": "Coverage of SSRF via LLM chatbot / B2B orders across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            }
+          ],
+          "version": "1.6.2"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "vuln-0001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Mass assignment of role at registration allows unauthenticated admin account creation\n\nThe user registration endpoint binds the client-supplied `role` field without restriction, allowing any unauthenticated attacker to create an account with the `admin` role and receive a valid admin JWT on login."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "61d6faecf92deb2b09fc857d372d7c0f73483cb91c9c1164af1ab6394fab4583"
+          },
+          "properties": {
+            "security-severity": "9.4",
+            "strix_vuln_class_hash": "809f7c0d8d84ff4dc2268174f2efac37c5f926fa01988f661a0fb6791c5039a5",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0001",
+              "severity": "critical",
+              "cvss": 9.4,
+              "timestamp": "2026-09-11 19:52:07 UTC",
+              "target": "http://host.docker.internal:3001",
+              "impact": "Immediate full administrator compromise of the application from an unauthenticated position: the attacker can list all user accounts and their data, read/modify any user's basket and orders, modify products and prices, view accounting data, and access all admin functionality. No prior credentials or user interaction required.",
+              "technical_analysis": "`POST /api/Users` maps the JSON request body directly onto the Sequelize User model on creation. The client-supplied `role` attribute is persisted verbatim instead of being forced to `customer`. On subsequent login, `POST /rest/user/login` loads the stored record and signs an RS256 JWT whose payload embeds `role:\"admin\"`, and all server-side authorization checks (e.g., `/api/Users` listing, cross-user basket access, admin REST endpoints) trust that claim. The Angular client simply never offers the role field in its registration form — the API accepts it anyway.",
+              "remediation_steps": "Remove the `role` field from the request payload bound at registration and hard-code the default role server-side; maintain an explicit field allowlist for user creation so client-supplied privilege, status, or entitlement fields (role, isActive, deluxeToken) are never persisted. Reject or silently discard any attempt to set a privileged role at the public registration endpoint.",
+              "counterevidence": "Checked whether registration or role binding is restricted: the endpoint performs no server-side allowlist of the `role` field, and login plus server-side admin checks (GET /api/Users, cross-user basket read) confirmed the granted role is authoritative rather than cosmetic. Registration is open by default config (application-configuration `registration` true), so no precondition limits this. The Angular UI not exposing the role field is client-side only and does not constrain the API.",
+              "confidence": "high",
+              "severity_change_conditions": "If server-side role allowlisting were added at registration, this finding would be fully remediated; no evidence of any such control exists in the tested deployment.",
+              "poc": {
+                "description": "1. Send `POST /api/Users` with JSON body `{\"email\":\"<new-email>\",\"password\":\"...\",\"passwordRepeat\":\"...\",\"role\":\"admin\"}`. 2. Observe the 201 response returns the created user with `role:\"admin\"`. 3. Log in via `POST /rest/user/login` with the new credentials; the response JWT payload contains `\"role\":\"admin\"`. 4. Use the token as `Authorization: Bearer` on the admin-gated `GET /api/Users` and it returns the full user list (including admin@juice-sh.op); `GET /rest/basket/1` returns another user's basket, confirming server-side admin authorization is granted.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0002",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "Authentication bypass via unsigned JWT with alg:none (arbitrary identity forgery including admin)\n\nThe backend accepts JWTs with algorithm `none` and an empty signature, allowing any unauthenticated attacker to mint a token for an arbitrary identity — including the `admin` role — and receive full authenticated, admin-authorized access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "34bab30876f0802cc4d47fdff6806995451ec0062def34c545c0939368b2c4a3"
+          },
+          "properties": {
+            "security-severity": "9.4",
+            "strix_vuln_class_hash": "0af545a3ae648a9a68aad98367698dd5599b2619787b279074d9d94a4093efd9",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0002",
+              "severity": "critical",
+              "cvss": 9.4,
+              "timestamp": "2026-09-11 19:53:07 UTC",
+              "target": "http://host.docker.internal:3001",
+              "impact": "Complete unauthenticated authentication bypass: the attacker impersonates any user or the administrator without knowing any credentials or possessing any key. Demonstrated as the seeded admin (full user list disclosure including all customers' emails and account metadata, cross-user basket access); the same forgery works against any user id for horizontal impersonation of orders, wallets, and personal data, and enables all admin write actions (product/price modification, order delivery status, accounting).",
+              "technical_analysis": "The JWT verification middleware does not pin the allowed `alg` header values to RS256. When presented with `{\"alg\":\"none\"}` and an empty signature segment, verification succeeds without any cryptographic proof, and the middleware then trusts the entire payload — including `data.role`, `data.id`, and `bid` — for authorization decisions. Signed RS256 tokens ARE verified (invalid signatures are rejected with `UnauthorizedError: invalid signature`), so the flaw is isolated to the acceptance of the unsigned algorithm variant.",
+              "remediation_steps": "Pin the accepted JWT algorithms server-side to the expected signature scheme (RS256) and reject any token whose header declares `alg:none` or any unsigned variant; upgrade the JWT middleware/library to a version that refuses unsigned tokens by default. Additionally, never derive authorization decisions (role, user id, basket id) solely from token claims without validating signature and algorithm first.",
+              "counterevidence": "Actively tested the alternative forgery paths to bound the issue: an RS256 token with an invalid signature is correctly rejected with `UnauthorizedError: invalid signature`, and a garbage token is rejected with `UnauthorizedError: Invalid token` — so the server does run signature verification for signed tokens and the weakness is specifically the acceptance of the unsigned `alg:none` variant. I searched the unauthenticated `/rest/admin/application-configuration` dump, `/api-docs` Swagger spec, `/metrics`, `/robots.txt`, `/public/images/tracking.gif` and the 1.2MB `main.js` client bundle for exposed RSA key material (public/private key strings, jwtKey, PEM markers) and found none, so no key-confusion path was needed or available — the `alg:none` acceptance alone completes the bypass.",
+              "confidence": "high",
+              "severity_change_conditions": "If the deployment pinned the accepted algorithm list on the JWT verification middleware, this bypass would close entirely; acceptance of `alg:none` was verified live and no such pinning exists.",
+              "poc": {
+                "description": "1. Base64url-encode header `{\"typ\":\"JWT\",\"alg\":\"none\"}` and a payload shaped like a legitimate Juice Shop token: `{\"data\":{\"id\":1,\"email\":\"admin@juice-sh.op\",\"role\":\"admin\",\"isActive\":true,...},\"bid\":1,\"iat\":<ts>}`. 2. Concatenate as `header.payload.` (empty third segment). 3. Send it as `Authorization: Bearer <token>` to `GET /api/Users` — a 200 with the full user list is returned, proving the forged admin identity is honored by server-side authorization. 4. Repeat on `GET /rest/basket/1` to read another user's basket. 5. Negative controls: the same payload signed as RS256 with a bogus signature is rejected 401 (`invalid signature`), confirming the vulnerability is specifically the acceptance of `alg:none`.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0003",
+          "ruleIndex": 2,
+          "level": "warning",
+          "message": {
+            "text": "Unauthenticated user enumeration and security-question disclosure via /rest/user/security-question\n\nThe unauthenticated security-question lookup endpoint discloses which email addresses are registered (full question object vs empty object) and returns the account's configured security question, providing a username-enumeration oracle and reconnaissance for targeted password-reset attacks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "08984eee683e350815f4302715e0e8ff3e15d0ab8b8054df5c67f5a980320c0e"
+          },
+          "properties": {
+            "security-severity": "5.3",
+            "strix_vuln_class_hash": "cc5bbf044dd168cb81a1348cf3e08b6e37bc29c77fdf33d243337dd8841710c5",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0003",
+              "severity": "medium",
+              "cvss": 5.3,
+              "timestamp": "2026-09-11 19:56:12 UTC",
+              "target": "http://host.docker.internal:3001",
+              "impact": "Any anonymous attacker can reliably enumerate registered accounts and obtain each account's security question, focusing brute-force and phishing attacks on real users; the question text materially aids guessing the answer for the password-reset flow. On this instance, 28+ seeded accounts are confirmable within seconds. No direct data compromise beyond account existence and question disclosure was demonstrated.",
+              "technical_analysis": "The handler for `GET /rest/user/security-question` looks up the user by email and, when found, returns the associated security question record; when not found it returns an empty JSON object. It is unauthenticated and performs no rate limiting or response normalization, so the two outcomes are trivially distinguishable. The question content additionally arms an attacker for the `POST /rest/user/reset-password` flow, which verifies the answer against a SHA-256 hash stored in the `SecurityAnswers` table.",
+              "remediation_steps": "Return a generic, identical response (e.g., an empty object or a neutral message) regardless of whether the email exists; never disclose the configured security question until the user has proven control of the account through a different channel (e.g., emailed reset link), and rate-limit the lookup.",
+              "counterevidence": "Actively attempted to escalate this into a working account takeover: guessed the seeded admin's security answer from Juice Shop lore (25+ candidate answers from known seeded-account lore), and — via admin access obtained through the separate mass-assignment flaw — dumped the SHA-256-hashed security answers and attempted offline recovery of the admin's hash against 1M+ password and name wordlists, all without success. Reset-password type confusion (array/object/null/boolean answers) was also rejected. The answer hash being stored as an unsalted SHA-256 makes offline cracking plausible in principle, but no plaintext was recovered in this run, so the demonstrated impact remains account enumeration plus verification oracle. The endpoint also returns the configured security question to anonymous callers, which is itself a prerequisite information leak.",
+              "confidence": "high",
+              "severity_change_conditions": "Recovering any seeded account's security-answer plaintext (enabling the full password-reset takeover) would raise this to high; adding a uniform response would remediate the enumeration entirely.",
+              "poc": {
+                "description": "1. Send `GET /rest/user/security-question?email=admin@juice-sh.op` unauthenticated — the response contains the full security-question object for that account. 2. Send the same request with a random nonexistent email — the response is an empty object `{}`. 3. The differential confirms account existence and leaks the account's security question, which is the first stage of the password-reset flow.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "CWE-639",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "IDOR: Any authenticated user can read any other user's shopping basket (GET /rest/basket/:id)\n\nThe `GET /rest/basket/:id` endpoint returns any user's shopping basket to any authenticated customer. The server validates the JWT but never checks that the requested basket ID belongs to the token's user, allowing a logged-in customer to enumerate and read every other user's basket, including current product selections, quantities, and prices."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "/rest/basket/:id",
+                  "kind": "endpoint"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "e0203d218af92fa4925668b5d528e7c9634d228ac512f99090069facb6daa792"
+          },
+          "properties": {
+            "security-severity": "4.3",
+            "strix_vuln_class_hash": "ebf1ba63c404f36a89caddaa6fe5f69242fcb30f0ba18d9b0a595b1226f560fa",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0004",
+              "severity": "medium",
+              "cvss": 4.3,
+              "timestamp": "2026-09-11 19:56:30 UTC",
+              "target": "http://host.docker.internal:3001",
+              "endpoint": "/rest/basket/:id",
+              "method": "GET",
+              "cwe": "CWE-639",
+              "impact": "Any registered customer can enumerate baskets 1..N and read every other user's shopping activity in real time: which products they intend to buy, quantities, and prices. This is a direct disclosure of other users' purchase-intent data (business-confidential in a real shop) with trivially guessable integer IDs.",
+              "technical_analysis": "`GET /rest/basket/:id` resolves the basket by the raw path parameter. The route sits behind JWT authentication middleware, but the handler performs no comparison between the path ID and the `bid`/`data.id` claims embedded in the token. Basket IDs are small sequential integers (1, 2, 3...), so enumeration is trivial. The authentication middleware only proves the caller is *a* user, not *the* basket's owner — the object-level authorization step (CWE-639) is entirely absent. Unauthenticated requests are correctly rejected, which confirms the missing control is ownership, not authentication.",
+              "remediation_steps": "Bind the basket lookup to the authenticated principal: after JWT validation, derive the basket ID from the token's `bid` claim (as the application already does for the caller's own basket) or, when an explicit ID is accepted, query with a `where` clause on both the requested basket ID and the token user's ID, returning a 403/404 on mismatch. Do not rely on the client to pass its own basket ID.",
+              "counterevidence": "Checked whether the route is simply public: an unauthenticated request returns 401, so authentication is enforced but object-level authorization is not. Checked whether the response was cached or stale by comparing live edits (item added by B appears immediately in A's read). Checked whether only baskets without an owner were returned: response includes UserId 27 and the exact items B just added. No ownership control found on this path.",
+              "confidence": "high",
+              "severity_change_conditions": "If baskets were found to also expose stored delivery addresses or payment details, confidentiality impact would rise to High.",
+              "poc": {
+                "description": "1. Register two accounts (attacker A, victim B) and log in as each to obtain JWTs. 2. As B, add a product to B's basket via `POST /api/BasketItems` and note B's basket ID from the login response (`bid`). 3. Send `GET /rest/basket/<B's basket id>` with A's JWT in the `Authorization: Bearer` header. 4. Observe a 200 response containing B's basket: `UserId` of B, and the exact product and quantity B added. 5. Confirm the same request without a token returns 401, proving the flaw is ownership, not authentication.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "CWE-639",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "IDOR: Any authenticated user can check out another user's basket (POST /rest/basket/:id/checkout)\n\nThe `POST /rest/basket/:id/checkout` endpoint accepts any basket ID in the URL. A customer JWT holder can check out another user's basket: the victim's basket is emptied and the resulting order is created in the attacker's account. The server authenticates the caller but never verifies that the basket belongs to them."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "/rest/basket/:id/checkout",
+                  "kind": "endpoint"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "afb280fda8a5eabfd6fe9c8a0cf74899db6f8655da6b7352cf86b3ef2be51577"
+          },
+          "properties": {
+            "security-severity": "4.3",
+            "strix_vuln_class_hash": "ebf1ba63c404f36a89caddaa6fe5f69242fcb30f0ba18d9b0a595b1226f560fa",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0005",
+              "severity": "medium",
+              "cvss": 4.3,
+              "timestamp": "2026-09-11 19:56:43 UTC",
+              "target": "http://host.docker.internal:3001",
+              "endpoint": "/rest/basket/:id/checkout",
+              "method": "POST",
+              "cwe": "CWE-639",
+              "impact": "Any customer can (a) destroy another user's in-progress shopping cart by emptying it, and (b) place the victim's selected goods on the attacker's own order. In a real shop this hijacks purchase intent, lets the attacker buy out limited stock the victim had reserved in their cart, and corrupts order attribution.",
+              "technical_analysis": "The checkout handler looks up the basket by the URL parameter and creates an order for the JWT's user against it, without comparing the basket's `UserId` to the token's user. Because the order is created from the token identity while the basket is resolved from the URL, the two principals are effectively mixed: victim B's basket contents become attacker A's order, and B's basket is cleared by the order-creation flow. The same sequential integer IDs as the basket-read IDOR make targeting trivial.",
+              "remediation_steps": "Before processing a checkout, verify the referenced basket belongs to the authenticated user by comparing the path parameter with the basket ID bound to the token (the `bid` claim issued at login), and reject mismatches with 403. Alternatively, ignore the client-supplied basket ID entirely and resolve it server-side from the token, so a checkout can never act on another principal's object.",
+              "counterevidence": "Checked whether checkout merely reads the basket: B's basket verifiably emptied and B's order history stayed empty while A's gained the order — a real state change on B's object. Checked whether the route validates basket ownership at a later step (coupon or orderDetails processing): it does not; an empty body still completes. Checked whether the order was silently assigned back to B: it was not — A's order-history contains it. The only mitigations found (stock limits, quantity caps) do not touch ownership.",
+              "confidence": "high",
+              "severity_change_conditions": "If checkout could also attach the victim's saved payment card or delivery address to the attacker's order, integrity impact would rise to High.",
+              "poc": {
+                "description": "1. Register attacker A and victim B; log in both, capturing JWTs and B's `bid` from the login response. 2. As B, add a product to B's basket so it is non-empty. 3. As A, send `POST /rest/basket/<B's bid>/checkout` with an empty JSON body. 4. Observe `200 {\"orderConfirmation\": ...}`. 5. As B, request `GET /rest/basket/<B's bid>` — the basket is now empty; `GET /rest/order-history` as B shows no new order, while A's order history contains the confirmation.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "CWE-639",
+          "ruleIndex": 3,
+          "level": "error",
+          "message": {
+            "text": "IDOR: Any authenticated user can modify or delete another user's saved address (PUT/DELETE /api/Addresss/:id)\n\nThe update and delete handlers for saved delivery addresses (`PUT/DELETE /api/Addresss/:id`) perform no ownership check. Any authenticated customer can overwrite another user's saved address — and the update silently reassigns the record to the attacker — or delete it outright. Only the read path is protected."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "/api/Addresss/:id",
+                  "kind": "endpoint"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "58a6bc87e4d2b2b646bae97bc10a0d81cdc5f20f463e02c5fbdd5896f55bd70d"
+          },
+          "properties": {
+            "security-severity": "7.1",
+            "strix_vuln_class_hash": "ebf1ba63c404f36a89caddaa6fe5f69242fcb30f0ba18d9b0a595b1226f560fa",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0006",
+              "severity": "high",
+              "cvss": 7.1,
+              "timestamp": "2026-09-11 19:56:56 UTC",
+              "target": "http://host.docker.internal:3001",
+              "endpoint": "/api/Addresss/:id",
+              "method": "PUT",
+              "cwe": "CWE-639",
+              "impact": "Any customer can tamper with or destroy other users' saved delivery addresses. Because checkout consumes the saved address, a tampered address redirects the victim's future orders to an attacker-chosen location — a concrete path to intercepting deliveries. The reassignment side effect also steals the record outright from the victim.",
+              "technical_analysis": "The Address model has an ownership guard on `find` (per-object GET returns \"Malicious activity detected\" for foreign records and the list endpoint returns only the caller's rows), but the `update` and `destroy` handlers accept a bare record ID. The PUT handler additionally persists a client-supplied `UserId`, so the attacker both corrupts the record and takes ownership of it — a mass-assignment-style reassignment combined with missing authorization. The DELETE handler destroys any record by ID. Address IDs are small sequential integers, enumerable by any customer.",
+              "remediation_steps": "In the update and delete handlers for the Address model, resolve the record with a query filtered on both the requested ID and the authenticated user's ID (from the JWT), returning 403 or 404 on mismatch — mirroring the check already implemented on the read path. Additionally, ignore or validate any client-supplied `UserId` on update so a foreign record cannot be reassigned to the caller, and never let an update change record ownership implicitly.",
+              "counterevidence": "Checked the read path: per-object GET /api/Addresss/7 is correctly blocked with 400 \"Malicious activity detected\", and GET /api/Addresss returns only the caller's records — so a read-specific control exists. Checked list endpoints for a compensating view: no cross-user read was possible. However, that read control demonstrably does not cover the update/delete handlers, which returned 200 for a foreign record. Checked whether the PUT failed silently: the response echoed the tampered fields (\"Hacked By A\", city \"PWN\") and UserId changed to 25, and B's subsequent list lost the record after DELETE — mutations were applied for real.",
+              "confidence": "high",
+              "severity_change_conditions": "Confirmation that checkout uses the tampered saved address for the victim's subsequent orders would demonstrate delivered-goods interception and raise availability/integrity impact further; conversely, if updates were restricted to the caller's records the issue would be eliminated.",
+              "poc": {
+                "description": "1. Register attacker A and victim B; log in both and obtain JWTs. 2. As B, create a saved address via `POST /api/Addresss` and note its ID (visible in B's `GET /api/Addresss` list). 3. As A, send `PUT /api/Addresss/<that id>` with modified fields. 4. Observe 200 with the tampered values and `UserId` now equal to A's ID. 5. As A, send `DELETE /api/Addresss/<id>`; observe 200 and B's address list now empty. 6. Confirm the read control exists: `GET /api/Addresss/<id>` as A returns 400 \"Malicious activity detected\".",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "CWE-862",
+          "ruleIndex": 4,
+          "level": "warning",
+          "message": {
+            "text": "Broken access control: any customer can list all users' emails, roles and last-login IPs (GET /api/Users)\n\nAny authenticated customer can retrieve the complete user directory: `GET /api/Users` returns every registered account's email, role, last-login IP, profile image and activity flags, and `GET /api/Users/:id` exposes any individual record. The endpoint requires authentication but performs no role check — a plain customer receives the admin account's record alongside all other users'."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "/api/Users",
+                  "kind": "endpoint"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "dd0ed4d8b67452d5e3ba86eee27a67cf468249f200246c055b844fc6a4b7c336"
+          },
+          "properties": {
+            "security-severity": "4.3",
+            "strix_vuln_class_hash": "56d4509e84ee7b3ac12d386f43ecd4b9a45f799c528ef7f07837f2a2eadce200",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0007",
+              "severity": "medium",
+              "cvss": 4.3,
+              "timestamp": "2026-09-11 19:57:09 UTC",
+              "target": "http://host.docker.internal:3001",
+              "endpoint": "/api/Users",
+              "method": "GET",
+              "cwe": "CWE-862",
+              "impact": "Any customer obtains a complete mailing list of all users including the administrator's account identity (email + role), plus per-user last-login IP addresses — reconnaissance material for credential attacks, phishing, and targeted privilege-escalation attempts against the admin account. Enumeration of valid emails also feeds the password-reset and security-question flows.",
+              "technical_analysis": "The `/api/Users` Sequelize REST read endpoints sit behind authentication middleware but have no authorization constraint: any valid JWT, regardless of its `role` claim, receives the full model listing. Per-object reads accept arbitrary IDs with no caller binding. The response is filtered to non-secret fields (no password hashes), but emails, roles and last-login IPs of all users — including the admin — are returned to the lowest privilege level.",
+              "remediation_steps": "Restrict user-record reads to privileged roles: require an admin role claim in the JWT on `GET /api/Users` and `GET /api/Users/:id`, and return 403 for other roles. If customers legitimately need their own record, expose only `GET /api/Users/<own id>` resolved from the token, never a directory listing.",
+              "counterevidence": "Checked for compensating controls: the record list excludes password hashes and totpSecrets, so the most sensitive fields are filtered. Checked write access: PUT /api/Users/27 as A returns 401 — record modification is properly guarded, and this finding is disclosure-only. Checked unauthenticated access: 401 without a token, so this is not a fully public endpoint. No row-level filtering by caller was found on the read path.",
+              "confidence": "high",
+              "severity_change_conditions": "If the records also leaked password hashes or 2FA secrets (they currently do not), or if this listing enabled a demonstrated account takeover via the reset flow, severity would rise to High.",
+              "poc": {
+                "description": "1. Register a fresh account and log in to obtain a plain-customer JWT. 2. Send `GET /api/Users` with that JWT. 3. Observe a 200 response listing all 28 user records with emails and roles, including the admin account. 4. Send `GET /api/Users/1` to fetch the admin record individually. 5. Confirm the endpoint is not simply public: the same request without a token returns 401.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "CWE-639",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "IDOR: Any authenticated user can read all other users' complaints (GET /api/Complaints)\n\n`GET /api/Complaints` returns every user's B2B support complaint to any authenticated customer. The collection listing has no ownership or role filter, so private complaint messages — including file attachments metadata and the author's user ID — of all users are readable by a plain customer, even though per-object access is properly protected."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "/api/Complaints",
+                  "kind": "endpoint"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "9c8994fc8efd22746826b9ef1cd22aae14cd168835b6e1a4da5a0d0d08b15f63"
+          },
+          "properties": {
+            "security-severity": "4.3",
+            "strix_vuln_class_hash": "ebf1ba63c404f36a89caddaa6fe5f69242fcb30f0ba18d9b0a595b1226f560fa",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0008",
+              "severity": "medium",
+              "cvss": 4.3,
+              "timestamp": "2026-09-11 19:57:19 UTC",
+              "target": "http://host.docker.internal:3001",
+              "endpoint": "/api/Complaints",
+              "method": "GET",
+              "cwe": "CWE-639",
+              "impact": "Any customer can read all other users' private support complaints. In a real deployment complaints routinely contain order numbers, refund disputes, and personal details, so this is unauthorized access to other users' confidential support communications. It also reveals complaint IDs and user IDs for further targeting.",
+              "technical_analysis": "The Complaint model's per-object handlers (`GET/PUT /api/Complaints/:id`) verify ownership, but the collection handler for `GET /api/Complaints` queries the model without a per-user `where` clause or role gate. Any authenticated JWT therefore receives all rows. The inconsistency between the guarded single-object endpoints and the unguarded listing is the root cause.",
+              "remediation_steps": "Apply the same ownership check used on the per-object handlers to the collection listing: filter `GET /api/Complaints` by the authenticated user's ID (or restrict it to admin roles), so a customer only ever sees their own complaints.",
+              "counterevidence": "Checked per-object access: GET/PUT /api/Complaints/2 as another customer both return 401 — single-record access is guarded, and the guard is verified to run before the handler. Checked the unauthenticated case: 401. Checked whether the listing is filtered per caller: it is not — a complaint created seconds earlier by the second test identity appeared verbatim in the first user's listing. The gap is confined to the collection endpoint's listing query, which omits the ownership filter that the per-object handlers have.",
+              "confidence": "high",
+              "severity_change_conditions": "If complaint records carried attached files readable cross-user or contained payment data, confidentiality impact would rise to High.",
+              "poc": {
+                "description": "1. Register attacker A and victim B; obtain JWTs for both. 2. As B, submit a complaint via `POST /api/Complaints` with a distinctive private message. 3. As A, request `GET /api/Complaints`. 4. Observe B's fresh complaint returned verbatim in A's response alongside all other users' complaints. 5. Confirm per-object protection: `GET /api/Complaints/<B's id>` as A returns 401, showing the flaw is the unfiltered listing query.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "CWE-639",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "IDOR: Any authenticated user can read, modify, or delete other users' basket items (/api/BasketItems)\n\nThe `/api/BasketItems` endpoints let any authenticated customer read, modify, and delete other users' basket items. `GET /api/BasketItems` lists every user's items; `PUT /api/BasketItems/:id` changes the quantity of another user's item; `DELETE /api/BasketItems/:id` removes another user's item from their basket. Only item creation is ownership-checked."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "/api/BasketItems/:id",
+                  "kind": "endpoint"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "e1477135b684880914c91db58f94ca86a77963ac608327bd0064fd5449f41c9f"
+          },
+          "properties": {
+            "security-severity": "6.3",
+            "strix_vuln_class_hash": "ebf1ba63c404f36a89caddaa6fe5f69242fcb30f0ba18d9b0a595b1226f560fa",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0009",
+              "severity": "medium",
+              "cvss": 6.3,
+              "timestamp": "2026-09-11 19:57:45 UTC",
+              "target": "http://host.docker.internal:3001",
+              "endpoint": "/api/BasketItems/:id",
+              "method": "PUT",
+              "cwe": "CWE-639",
+              "impact": "Any customer can (a) surveil all users' shopping activity in real time (products and quantities), (b) silently change what another user's basket contains — quantities they never chose, up to per-product stock limits, directly affecting what the victim pays at checkout — and (c) empty another user's basket, destroying their work-in-progress shopping. Quantity manipulation also lets an attacker push a victim's order toward stock-limit failures.",
+              "technical_analysis": "`POST /api/BasketItems` validates that the supplied `BasketId` belongs to the authenticated user (401 \"Invalid BasketId\" otherwise), but the collection listing and the update/destroy handlers operate on bare record IDs with no ownership join to the basket's `UserId`. The result is inconsistent enforcement across handlers of the same resource: create is guarded, while read (listing), update and delete are not. Basket-item IDs are sequential integers, and the unfiltered listing itself hands every item ID to the attacker.",
+              "remediation_steps": "Extend the ownership validation already present on item creation to the other handlers: filter `GET /api/BasketItems` by the caller's basket ID, and before `PUT`/`DELETE /api/BasketItems/:id`, resolve the item joined with its basket and verify the basket's `UserId` equals the token user's ID, returning 403 on mismatch. Derive the caller's basket from the token rather than trusting client-supplied `BasketId`/item IDs.",
+              "counterevidence": "Checked the create path: POST /api/BasketItems with a foreign BasketId is correctly rejected with 401 \"Invalid BasketId\" — so an ownership control exists and demonstrably runs on creation. Checked whether update/delete failures were stock-related: the 400 responses (\"out of stock\", \"only up to 5 items\") came from stock logic, and a within-stock quantity (1→4) succeeded with 200 while the victim's basket showed the new value — the mutation was applied for real. Deletion returned 200 twice and the victim's basket was emptied each time. The controls on create simply do not cover update/destroy or the listing.",
+              "confidence": "high",
+              "severity_change_conditions": "If quantity manipulation could be shown to alter the victim's charged total at checkout beyond stock limits, or to let the attacker exceed per-user purchase limits at the victim's expense, integrity impact would rise toward High.",
+              "poc": {
+                "description": "1. Register attacker A and victim B; obtain JWTs and B's basket ID (`bid` from login). 2. As B, add an in-stock product to B's basket. 3. As A, request `GET /api/BasketItems` — B's item is visible with its ID. 4. As A, send `PUT /api/BasketItems/<B's item id>` with `{\"quantity\": 4, \"ProductId\": <same>, \"BasketId\": <B's bid>}`. 5. As B, request `GET /rest/basket/<bid>` — quantity is now 4. 6. As A, send `DELETE /api/BasketItems/<B's item id>`; as B, verify the basket is empty. 7. Confirm create is guarded: `POST /api/BasketItems` with B's BasketId using A's token returns 401.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0010",
+          "ruleIndex": 5,
+          "level": "warning",
+          "message": {
+            "text": "Password change via GET with credentials in URL query string, response discloses password hash\n\nThe password-change operation is performed via `GET /rest/user/change-password` with the current and new passwords transmitted as URL query-string parameters, causing credentials to be stored in browser history, proxy logs, and server access logs. The successful response additionally returns the user's full record including the (unsalted MD5) password hash."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "71a18e6651d0c08956389c1a7a42137f46eac2ecbd50b5a2554ee9926bbf3707"
+          },
+          "properties": {
+            "security-severity": "4.3",
+            "strix_vuln_class_hash": "5424a1a5017a483f95a6a1005d533da360db58166e08eff16c0b5a77bd3d387b",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0010",
+              "severity": "medium",
+              "cvss": 4.3,
+              "timestamp": "2026-09-11 19:59:30 UTC",
+              "target": "http://host.docker.internal:3001",
+              "impact": "Current and new passwords persist in cleartext in URL-based log stores (browser history, proxies, referer headers, server access logs), which in a real deployment exposes user credentials to anyone with log access. The response hash disclosure (plus unsalted MD5 password storage) enables offline cracking of the user's password. No cross-user modification was demonstrated; the attacker must already hold a valid session token for this account.",
+              "technical_analysis": "The Angular SPA calls `GET /rest/user/change-password?current=<pwd>&new=<pwd>&repeat=<pwd>` (visible in the main.js bundle). The handler verifies the current password, updates the record, and returns the full updated Sequelize user object — which includes the `password` attribute (an unsalted MD5 hex digest, confirmed by comparing the returned hash to `md5()` of the new password) — directly in the JSON response. Because it is a GET with a query string, both the old and new passwords are persisted in any URL-recording layer.",
+              "remediation_steps": "Move the password-change operation to a `POST`/`PUT` endpoint with credentials in the request body over TLS; never place passwords in URLs. Stop returning the password hash (or any password-derived value) in API responses, and replace unsalted MD5 password hashing with a dedicated password hash such as bcrypt, scrypt, or Argon2.",
+              "counterevidence": "Actively tested the CSRF angle: when the token is supplied via the `token` cookie (the browser-authenticatable channel), the endpoint refuses with `Error: Blocked illegal activity` and header IP spoofing (X-Forwarded-For, True-Client-IP, X-Origin-IP) does not bypass the block — so a cross-site CSRF attack via `<img src=...>` would fail on a cookie-authenticated session. The weakness that remains is the GET method with credentials in the URL and the verification being bypassable by attacker-controlled header/URL logging, not a direct CSRF exploit. Authorization is enforced (wrong current password returns 401; unauthenticated calls are blocked).",
+              "confidence": "high",
+              "severity_change_conditions": "Demonstrating log/history access capturing these URLs in a real deployment would confirm the credential-exposure impact and could raise severity; the hash-disclosure component would drop out if the response stopped embedding the user record.",
+              "poc": {
+                "description": "1. Log in to obtain a valid JWT. 2. Send `GET /rest/user/change-password?current=<current>&new=<new>&repeat=<new>` with the token as `Authorization: Bearer`. 3. Observe a 200 response whose `user` object contains the account record including the new password hash (unsalted MD5). 4. Note that the credentials traveled fully in the request URL, which is recorded in browser/proxy/server logs.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0011",
+          "ruleIndex": 6,
+          "level": "warning",
+          "message": {
+            "text": "JWTs never expire: missing exp claim and no server-side lifetime validation\n\nSession JWTs contain no `exp` (or `nbf`) claim and the backend performs no lifetime validation, so issued tokens never expire and can be replayed indefinitely — including tokens whose `iat` dates back decades."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "e8ba4d59a5fa18c6658e3891e5f4720ca3d4ac47202c9c1eb394b37ef4479e7d"
+          },
+          "properties": {
+            "security-severity": "6.5",
+            "strix_vuln_class_hash": "ce2b6c74d7aa42c8c94897408c35646a7d33f9d21baaea1e8c2c4e26b3426850",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0011",
+              "severity": "medium",
+              "cvss": 6.5,
+              "timestamp": "2026-09-11 19:59:55 UTC",
+              "target": "http://host.docker.internal:3001",
+              "impact": "Once a token is obtained (via XSS exfiltration, log/proxy capture, or the credential-in-URL exposure reported separately), the attacker retains permanent access to the victim account — password changes by the victim do not invalidate it. Combined with the token payload embedding the full user record (including password hash and totpSecret), a captured token never loses value.",
+              "technical_analysis": "The JWT issued at login signs a payload of `{\"data\": <full user record>, \"bid\": <basket id>, \"iat\": <issued-at>}`. No `exp` claim is set and the verification middleware applies no maximum-age check, so token validity is bounded only by signature correctness, not time. Testing tokens with `iat` values of 0 and 1600000000 (both accepted as fully valid sessions at the time of testing, ~1789156000) confirms no lifetime validation occurs on any claim.",
+              "remediation_steps": "Add a short `exp` claim to every issued JWT and enforce expiry (with a small clock-skew tolerance) in the verification middleware; implement logout-time revocation (e.g., a server-side denylist keyed on `jti`) so password changes and logouts invalidate outstanding sessions. Avoid embedding the full user record in the token payload.",
+              "counterevidence": "The `iat` claim is present, so the tokens are self-describing as long-lived by design rather than mis-issued. Signature verification for signed tokens is otherwise intact (invalid RS256 signatures are rejected), so the weakness is specifically the absence of lifetime enforcement, not general verification failure. I could not observe token revocation/blacklist behavior directly; if a server-side revocation list existed it would partially mitigate persistence after logout, but no revocation mechanism is exposed in the API and the alg:none acceptance (reported separately) already defeats any claim-based session control.",
+              "confidence": "high",
+              "severity_change_conditions": "Confirming a working logout/revocation mechanism (or its absence) would refine the persistence impact; absence of expiry combined with a confirmed token-theft vector in a real deployment would raise severity to high.",
+              "poc": {
+                "description": "1. Decode any legitimate JWT issued by `POST /rest/user/login` — the payload contains `iat` but no `exp`. 2. Craft/obtain a token with an `iat` decades in the past (or simply retain any older token). 3. Present it to `GET /rest/user/whoami` as the `token` cookie — the server returns the authenticated user object regardless of token age. 4. Tokens issued at session start remain valid after arbitrarily long time gaps with no server-side invalidation.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0012",
+          "ruleIndex": 7,
+          "level": "warning",
+          "message": {
+            "text": "Open redirect in /redirect via substring-based allowlist bypass\n\nThe `/redirect` endpoint validates the `to` parameter against a URL allowlist using a substring (`includes`) check instead of exact matching. Any URL that embeds an allowlisted string anywhere — for example as userinfo credentials — passes validation, producing a 302 redirect to an attacker-controlled host."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "2efcba5f7e181a570a2cc78853f5ce667b1b6ac6c02f4cc233f99652a89481db"
+          },
+          "properties": {
+            "security-severity": "4.3",
+            "strix_vuln_class_hash": "80706fe9167a045bb171b04e2c0c9835ee2961b679abb457e0c1b45b32ca8195",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0012",
+              "severity": "medium",
+              "cvss": 4.3,
+              "timestamp": "2026-09-11 20:00:12 UTC",
+              "target": "http://host.docker.internal:3001",
+              "method": "GET",
+              "impact": "An attacker can craft a link on the trusted application origin (e.g. `/redirect?to=https://github.com/juice-shop/juice-shop@evil.com`) that silently lands victims on an arbitrary external site, enabling credential phishing and token interception while the browser address bar initially shows the trusted origin. In this instance the impact is phishing/brand abuse only (no OAuth/redirect_uri flow was observed consuming this endpoint).",
+              "technical_analysis": "The redirect handler resolves the target via an allowlist check implemented as `allowed = allowed || url.includes(allowedUrl)` over a fixed set of allowlisted URLs (e.g. `https://github.com/juice-shop/juice-shop`, `https://blockchain.info/address/1AbKfgvw9psQ41NbLi8kufDQTezwG8DRZm`). Because a substring anywhere in the candidate URL satisfies the check, the userinfo URL form `https://<allowlisted-url>@<attacker-host>` passes validation. The handler then issues `res.redirect(toUrl)`, emitting the attacker-controlled URL in the `Location` header. Browsers ignore the userinfo component when resolving the host, so a victim following the redirect lands on the attacker's server. Path-traversal suffixes and query/fragment suffixes on allowlisted entries are likewise accepted (the full string is reflected in `Location`), confirming the validator checks containment rather than equality.",
+              "remediation_steps": "Replace the substring check with exact-match validation: parse the `to` parameter with a single URL parser and require the full URL to exactly equal one allowlisted entry (or to match an exact scheme + host + path-prefix allowlist after canonicalization). Reject any URL containing userinfo (`@` in the authority component), and treat query/fragment differences as mismatches.",
+              "counterevidence": "Checked alternatives that fail: arbitrary unknown URLs (http://example.com) correctly return 406 \"Unrecognized target URL\"; protocol-relative `//evil.com`, backslash `/\\evil.com`, case tricks, scheme-less, and http-variant forms are all rejected; `javascript:` and `data:` schemes are rejected; subdomain trick (github.com/juice-shop.juice-shop.evil.com) rejected. No CSP or user-confirmation interstitial mitigates navigation to the redirected target. The only constraint found is the allowlist itself, and the substring-match flaw defeats it; no WAF or rate limiting observed on this endpoint.",
+              "confidence": "high",
+              "severity_change_conditions": "Discovery that any OAuth/OIDC or post-login flow trusts this endpoint as its redirect target would raise severity; conversely no such flow was found (severity would drop to informational).",
+              "poc": {
+                "description": "1. Send `GET /redirect?to=https://github.com/juice-shop/juice-shop@evil.com` to the application. 2. Observe `HTTP/1.1 302 Found` with `Location: https://github.com/juice-shop/juice-shop@evil.com`. 3. Open the same URL in a browser: the userinfo portion is ignored for host resolution and the browser navigates to `evil.com`. 4. Any allowlisted entry works as the embedded string; e.g. `to=https://blockchain.info/address/1AbKfgvw9psQ41NbLi8kufDQTezwG8DRZm/../../../evil` also produces a 302 outside the allowlist intent. 5. Control case: `to=http://example.com` (no embedded allowlisted string) is correctly rejected with 406 \"Unrecognized target URL\".",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "CWE-79",
+          "ruleIndex": 8,
+          "level": "warning",
+          "message": {
+            "text": "Reflected DOM XSS via q parameter on search results page\n\nThe `q` query parameter on the search results page is passed unsanitized through `sanitizer.bypassSecurityTrustHtml()` and rendered via Angular `[innerHTML]`, allowing arbitrary script execution in any victim's browser when they follow an attacker-crafted link."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "673eddc1484d52073caafec415b0680a131c8b2c6c1e525b29df262a6bef289d"
+          },
+          "properties": {
+            "security-severity": "5.4",
+            "strix_vuln_class_hash": "841d192a59e6812ef6a771cf84fa82963f628884ed58037aa16b7e6cdd3695f8",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0013",
+              "severity": "medium",
+              "cvss": 5.4,
+              "timestamp": "2026-09-11 20:00:28 UTC",
+              "target": "http://host.docker.internal:3001",
+              "method": "GET",
+              "cwe": "CWE-79",
+              "impact": "An attacker can craft a link that executes arbitrary JavaScript in any Juice Shop user's browser. Juice Shop stores its JWT in a `token` cookie readable via same-origin script, enabling session theft, account takeover, unauthorized purchases, and defacement of the victim's view. Requires the victim to click a link.",
+              "technical_analysis": "The search-result component's `filterTable()` reads `this.route.snapshot.queryParams.q`, then executes `this.searchValue = this.sanitizer.bypassSecurityTrustHtml(e)` and binds `searchValue` in the template via `[innerHTML]`. `bypassSecurityTrustHtml` disables Angular's contextual sanitization, so the raw attacker-controlled query string is inserted as live HTML. HTML-parser-observable payloads (e.g. `img src=x onerror=...`) execute JavaScript; `<iframe src=\"javascript:alert(\\`xss\\`)\">` renders an iframe with a javascript: source. The value never leaves the browser (pure DOM sink), so no server-side sanitizer touches it.",
+              "remediation_steps": "Remove the `bypassSecurityTrustHtml` call on the search query value and render it as plain interpolated text instead of `[innerHTML]`, so Angular's default contextual escaping applies. If rich rendering is genuinely required, run the value through DOMPurify before binding, and add a Content-Security-Policy header without `unsafe-inline` as a second layer of defense.",
+              "counterevidence": "Tested for mitigations: no Content-Security-Policy header is present on responses (only X-Frame-Options and Feature-Policy), the Angular sanitizer is explicitly bypassed by the component's own bypassSecurityTrustHtml call, and no validation of q occurs before render. The iframe/javascript: variant renders as a live DOM element; the img+onerror variant executes script. No blocking control found.",
+              "confidence": "high",
+              "severity_change_conditions": "A strict CSP (no unsafe-inline, no javascript: sources) would block execution and lower this to informational; confirmation of a stored variant on any other [innerHTML] sink would raise severity to high.",
+              "poc": {
+                "description": "1. Open the URL `http://host.docker.internal:3001/#/search?q=%3Cimg%20src%3D1%20onerror%3D%22window.__XSS_SEARCH%3D%27EXEC%27%22%3E` in a browser.\n2. After the search results page loads, evaluate `window.__XSS_SEARCH` in the console — it returns \"EXEC\", proving the injected onerror handler executed.\n3. Alternatively, the classic `?q=<iframe src=\"javascript:alert(`xss`)\"></iframe>` renders a live iframe with a javascript: source in the page DOM.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0014",
+          "ruleIndex": 9,
+          "level": "warning",
+          "message": {
+            "text": "SSRF with response disclosure via /profile/image/url imageUrl fetch\n\nThe profile image URL upload feature accepts a user-supplied `imageUrl` and performs a server-side `fetch()` of that URL with no allowlist, scheme, or IP-range validation. Any authenticated user can make the application server issue HTTP requests to arbitrary internal or external destinations, and the fetched response body is persisted and retrievable."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "191d458b8f00371cef9c9d2feebe238320756ac4ba3fe4ffe6695ddd871ef8d8"
+          },
+          "properties": {
+            "security-severity": "6.4",
+            "strix_vuln_class_hash": "018a9e26fd2098caea9a34ef1e1b91ac816e5289096c1f916a93affe5ae55aba",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0014",
+              "severity": "medium",
+              "cvss": 6.4,
+              "timestamp": "2026-09-11 20:00:31 UTC",
+              "target": "http://host.docker.internal:3001",
+              "method": "POST",
+              "impact": "An authenticated attacker can (1) reach internal-only services from the application server's network position (demonstrated against the app's own loopback API with content returned to the attacker), and (2) make the server fetch any external host, with the response body stored server-side and downloadable by the attacker. This enables internal network reconnaissance, access to services not exposed to clients, and potential cloud-metadata credential theft on cloud deployments.",
+              "technical_analysis": "`POST /profile/image/url` (authenticated via the `token` cookie) takes `req.body.imageUrl` and, without any validation, calls `fetch(url)` server-side. On a 2xx response the body is streamed to `<user-id>.<ext>` under the public uploads directory and the user's `profileImage` is updated, making the fetched content downloadable at `/assets/public/images/uploads/<id>.<ext>`; on fetch failure the raw URL is stored instead. Because the URL is used verbatim, the server can be directed at loopback/internal addresses (demonstrated: `http://127.0.0.1:3000/...`) or any external host, and the response body is disclosed to the requesting user. Note the request body must reach the handler via a `multipart/form-data` field, since the global JSON/urlencoded body parsers mount after this route.",
+              "remediation_steps": "Validate the `imageUrl` server-side before fetching: resolve the hostname and reject loopback, link-local (169.254.0.0/16), and RFC1918/private ranges; restrict the scheme to https (or http plus an explicit origin allowlist); do not follow redirects; and enforce a response size and content-type allowlist. Alternatively, proxy image uploads through a dedicated egress-restricted fetcher and never persist raw response bodies to user-accessible assets.",
+              "counterevidence": "Tested and ruled out as false positives: unauthenticated requests are blocked (\"Blocked illegal activity\" — the token cookie is enforced, so this is not an unauthenticated SSRF); JSON and urlencoded bodies are parsed after this route mounts, so `{\"imageUrl\": ...}` JSON POSTs are silently ignored (no fetch occurs) — only multipart form-field delivery works; outbound fetch failures fall back to storing the raw URL as the profile image without any server request. No scheme allowlist, IP-range blocklist, or DNS pinning is applied to `imageUrl`; arbitrary schemes accepted by `fetch` (http/https at minimum) reach the sink. Cloud-metadata-style targets were not separately proven (169.254.169.254 not exercised); the captured callback plus loopback retrieval already demonstrate arbitrary attacker-chosen destinations.",
+              "confidence": "high",
+              "severity_change_conditions": "Demonstrating a fetch of the cloud metadata endpoint (169.254.169.254) returning credentials would raise severity to high/critical; conversely, if the deployed environment has no reachable internal services and egress is blocked, severity would drop to medium/low.",
+              "poc": {
+                "description": "1. Log in and obtain the session `token` cookie. 2. Start an HTTP listener reachable from the application server (here 192.168.215.4:3999). 3. Send `POST /profile/image/url` with `Content-Type: multipart/form-data` containing field `imageUrl=http://192.168.215.4:3999/ssrf-poc-final.png` and the `token` cookie. 4. Observe the inbound `GET /ssrf-poc-final.png` on the listener from the application server (source 192.168.215.3, `User-Agent: node`). 5. Fetch `GET /assets/public/images/uploads/25.png` and receive the exact bytes the listener served, proving the server stored the fetched response. 6. Repeat with `imageUrl=http://127.0.0.1:3000/rest/admin/application-version` and retrieve `{\"version\":\"20.2.0\"}` from `/assets/public/images/uploads/25.jpg`, proving internal loopback fetch with content disclosure.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0015",
+          "ruleIndex": 10,
+          "level": "error",
+          "message": {
+            "text": "SQL Injection in POST /rest/user/login email parameter allows unauthenticated administrator login\n\nThe **`email`** parameter of the login endpoint is interpolated directly into a raw SQL query. Supplying `' OR 1=1--` (any password) returns a valid session for the first matching row — the administrator account — including its full JWT and password hash."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "6e5026eb02c3fb8766a98c05e4e5624199b541e5c3a40db51b8e7bb9bd4b3476"
+          },
+          "properties": {
+            "security-severity": "9.1",
+            "strix_vuln_class_hash": "ebd34625b590b8bdb4156533b0642eda496b0c366788543acba99ee0af71a2a2",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0015",
+              "severity": "critical",
+              "cvss": 9.1,
+              "timestamp": "2026-09-11 20:00:57 UTC",
+              "target": "http://host.docker.internal:3001",
+              "method": "POST",
+              "impact": "Complete authentication bypass without any credentials: the attacker is logged in as the administrator (user id 1) and receives a valid admin JWT. The JWT payload itself also discloses the admin's password hash and TOTP secret. Using the token, the admin-only API was accessed successfully (GET /api/Users returned the full user list). In a production analogue this grants full application administration and database write access.",
+              "technical_analysis": "The login handler builds its SQL query via string concatenation of the user-supplied email, on a SQLite backend reached through Sequelize. A single quote in the email produces a 500 `SQLITE_ERROR: incomplete input` page (raw parser error), proving the value is interpolated into the query text. The payload `' OR 1=1--` closes the email literal, makes the WHERE clause a tautology, and comments out the password condition, so the query returns the first row of the Users table — the seeded administrator (`admin@juice-sh.op`, role `admin`). The response then issues the normal JWT for that account; because the JWT payload embeds the full user record, the response also discloses the admin password hash and TOTP secret. The password field itself is not injectable (uniform 401 for all payloads with a fixed bogus email), isolating the flaw to the email parameter.",
+              "remediation_steps": "Replace the raw SQL string interpolation in the login query with Sequelize's parameterized query API (e.g. `sequelize.query` with bind parameters or `Model.findAll` with a where object), so the email value is bound as data rather than concatenated into SQL text. Reject or escape quote characters in the email field as defense in depth, and ensure the login query selects by exact email match rather than a concatenated fragment.",
+              "counterevidence": "Password field is not injectable — 8 payload variants in the password (with a fixed bogus email) all returned uniform 401 \"Invalid email or password\", so the weakness is confined to the email parameter. The injected login is not a valid-credential login: password \"x\" is rejected for every probe/test email tested outside the injection. No WAF, input validation, or parameterization observed on the email field; the single-quote baseline returning a 500 SQLITE error confirms raw string interpolation into the query.",
+              "confidence": "high",
+              "severity_change_conditions": "If the JWT issued after bypass were restricted to a low-privilege account (no admin row first), the impact would drop to medium; confirmation of writable SQL primitives (e.g. stacked queries) would raise availability impact.",
+              "poc": {
+                "description": "1. Send a POST request to `/rest/user/login` with JSON body where the `email` field is `' OR 1=1--` and `password` is any string (e.g. `x`).\n2. Observe HTTP 200 with an `authentication.token` JWT for `admin@juice-sh.op` (role `admin`, user id 1).\n3. Decode the token (no signature verification needed) to confirm the embedded role and password hash.\n4. Use the token as `Authorization: Bearer` on the admin-only endpoint `GET /api/Users` and observe the full user list returned, confirming admin-level access.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0016",
+          "ruleIndex": 11,
+          "level": "warning",
+          "message": {
+            "text": "Negative basket item quantity enables negative-total orders and wallet credit generation\n\nThe basket item quantity endpoint PUT /api/BasketItems/:id accepts negative quantities, producing negative basket totals. Checkout then processes the negative-total order, crediting the paying wallet instead of debiting it — a repeatable money-printing primitive for any authenticated customer."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "5dda8dbd067c8f0553dbed6eb45706aee6d04ff3799443622b77f2ff64595947"
+          },
+          "properties": {
+            "security-severity": "6.5",
+            "strix_vuln_class_hash": "bb1415703cdc919d98801798a8605040b3b53c5bfcc315abc0413e35bc70976e",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0016",
+              "severity": "medium",
+              "cvss": 6.5,
+              "timestamp": "2026-09-11 20:01:15 UTC",
+              "target": "http://host.docker.internal:3001",
+              "method": "PUT",
+              "impact": "Any authenticated customer can create orders with arbitrary negative totals and, by paying with the wallet, permanently increase their wallet balance by the negated amount — infinitely repeatable. The order history stores negative-priced orders and negative quantities, corrupting accounting records. In a real store this is direct financial fraud: unlimited store credit generation and unbounded ledger corruption.",
+              "technical_analysis": "PUT /api/BasketItems/:id updates the basket item quantity without validating that it is a positive integer. The Angular UI clamps quantities client-side (`quantity < 1 ? 1 : quantity`), but the REST endpoint stores any integer, including negatives. The basket total is computed as price × quantity, so a quantity of -10 yields a total of -19.90. The checkout handler POST /rest/basket/:id/checkout accepts this negative total without re-validation, creates the order, and when paymentId is \"wallet\" applies the standard wallet deduction of the (negative) amount — i.e. it adds funds to the wallet. The stored order (GET /rest/track-order/:orderId) confirms totalPrice: -19.9 and quantity: -10, demonstrating durable state corruption of the order ledger and the wallet.",
+              "remediation_steps": "Enforce a positive-integer minimum (>= 1) on basket item quantity on the server at PUT /api/BasketItems/:id and at POST /api/BasketItems, using the same server-side tamper guard already applied to warehouse quantities (PUT /api/Quantitys/:id). Recompute and validate the order total server-side at checkout, rejecting any order whose total is not a positive number before any payment or wallet mutation is applied.",
+              "counterevidence": "Checked for guards on the quantity path: the UI clamps quantity to >=1 client-side (JS `s<1?1:s` in the Angular bundle), but the server-side PUT /api/BasketItems/:id performs no server-side re-validation — the negative value is stored and propagated into the order record. Warehouse inventory PUT /api/Quantitys IS protected (403 \"Malicious activity detected\"), confirming the app has a server-side tamper guard pattern for quantities but it is not applied to basket items. No WAF or request validation rejected the payloads.",
+              "confidence": "high",
+              "severity_change_conditions": "If checkout additionally failed to re-validate inventory deduction for negative quantities in a production deployment (e.g. corrupting shared stock records), availability impact would raise this to high.",
+              "poc": {
+                "description": "1. Authenticate as any registered customer and add a product to your basket via POST /api/BasketItems.\n2. PUT /api/BasketItems/{id} with {\"quantity\": -10} — the server stores the negative quantity (200).\n3. GET /rest/basket/{bid} shows a negative basket total (-19.90).\n4. Record wallet balance via GET /rest/wallet/balance.\n5. POST /rest/basket/{bid}/checkout with {\"couponData\": null, \"orderDetails\": {\"paymentId\": \"wallet\", \"addressId\": <yours>, \"deliveryMethodId\": <id>}}.\n6. Re-read the wallet: it has INCREASED by the negated total. The order record confirms totalPrice: -19.9 with quantity -10.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0017",
+          "ruleIndex": 12,
+          "level": "error",
+          "message": {
+            "text": "UNION-based SQL Injection in GET /rest/products/search q parameter leaks all user credentials\n\nThe **`q`** parameter of the product search endpoint is concatenated into a raw SQL query on the backend. A UNION-based payload extracts arbitrary database content; all 28 users' emails and password hashes were dumped unauthenticated."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "df3cda84824c5c883a0f2105f87049b1cd555615decfd3aeae95ed72321576f4"
+          },
+          "properties": {
+            "security-severity": "7.5",
+            "strix_vuln_class_hash": "3d1cb6aefa0cdf4247fe3d1a745159a11360ff6432415a582fdf5431f247719a",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0017",
+              "severity": "high",
+              "cvss": 7.5,
+              "timestamp": "2026-09-11 20:01:59 UTC",
+              "target": "http://host.docker.internal:3001",
+              "method": "GET",
+              "impact": "Unauthenticated full-database read access: the entire Users table (emails and MD5 password hashes for all 28 accounts, including the administrator) was extracted, along with the complete database schema via sqlite_master. No authentication or user interaction is required.",
+              "technical_analysis": "The search handler interpolates the q value into a raw SQL LIKE query on SQLite (the double-paren `'))` prefix indicates the value lands inside a `LIKE('%...%')` nested in the query text). A single quote yields a raw `SQLITE_ERROR: incomplete input` 500 page, proving textual interpolation. The payload `juice')) UNION SELECT 11,22,33,44,55,66,77,88,99--` closes the LIKE, unions a 9-column SELECT matching the Products projection, and comments out the remainder; the SPA's JSON response renders the injected rows, allowing arbitrary table reads. Commas in the URL path fragment trigger an Express catch-all mis-dispatch (search must be sent as a URL-encoded query parameter, not path), which is a routing quirk, not a control. Extracting Users via `SELECT email||password FROM Users` demonstrates credential disclosure; sqlite_master extraction demonstrates full schema enumeration.",
+              "remediation_steps": "Replace the raw SQL string concatenation used for search with Sequelize's parameterized query API (bound parameters or a where-clause object), never interpolating the q value into query text. Apply allowlist validation on the search term (e.g. rejecting quotes and SQL metacharacters) only as defense in depth, not as the primary control.",
+              "counterevidence": "Control query q=juice returns only legitimate product rows and no credential data, so the leak is caused solely by the injected fragment. Parameterized variants would have returned 404/no rows; instead the injected UNION rows render with attacker-controlled column markers (id=11..99). No WAF or input validation observed on q.",
+              "confidence": "high",
+              "severity_change_conditions": "If the search query were parameterized server-side, extraction would fail — no other condition materially lowers this; confirmation of stacked-query support would raise it further (write access).",
+              "poc": {
+                "description": "1. Send `GET /rest/products/search` with query parameter `q` set to `juice')) UNION SELECT 11,22,33,44,55,66,77,88,99--` and observe an injected marker row rendered in the JSON response.\n2. Send the same endpoint with `q` set to `juice')) UNION SELECT type,name,1,1,1,1,1,'table',sql FROM sqlite_master--` to dump the full schema.\n3. Send `q` set to `juice')) UNION SELECT email||password,2,3,4,5,6,7,8,9 FROM Users--` to extract every user's email concatenated with their password hash; the credentials appear in the `id` field of the returned JSON rows.\n4. Compare with a control request `q=juice` which returns only product rows, confirming the leak is caused by the injected fragment.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "vuln-0018",
+          "ruleIndex": 13,
+          "level": "warning",
+          "message": {
+            "text": "Wallet top-up accepts arbitrary and negative deposit amounts (unlimited store credit)\n\nThe wallet top-up endpoint PUT /rest/wallet/balance treats the client-supplied \"balance\" field as a deposit amount and adds it to the current balance with no validation. A customer can supply an arbitrary positive amount (unlimited store credit with no real charge) or a negative amount, driving the wallet balance below zero."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "SECURITY.md"
+                }
+              }
+            },
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "http://host.docker.internal:3001",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "d83ab56b1f3a96a7024abd8b374c02df6c8c1c42e94a233ce1d0af558dd2da66"
+          },
+          "properties": {
+            "security-severity": "6.5",
+            "strix_vuln_class_hash": "da6d0049a258884b1097857d1be44267b90881133361c61d5eea83bd649e16e9",
+            "synthetic_location": true,
+            "strix": {
+              "id": "vuln-0018",
+              "severity": "medium",
+              "cvss": 6.5,
+              "timestamp": "2026-09-11 20:02:11 UTC",
+              "target": "http://host.docker.internal:3001",
+              "method": "PUT",
+              "impact": "Any authenticated customer can grant themselves unlimited store credit (observed: 5000 credited with no charge to any funding source) and can drive their wallet balance arbitrarily negative. In a real deployment this is direct financial loss: the attacker orders merchandise against self-minted balance. The negative-balance direction also enables further negative-total/wallet interplay.",
+              "technical_analysis": "PUT /rest/wallet/balance accepts {\"balance\": <number>, \"paymentId\": <card id>}. The handler resolves the saved card by id (rejecting unknown ids with 402 \"Payment not accepted\") but performs no validation on the amount: the supplied \"balance\" value is added to the current wallet balance. Positive values mint store credit with no corresponding real charge (the app has no payment provider — any well-formed saved card \"succeeds\"), and negative values are added as-is, allowing the balance to go below zero (observed -100, then -49 after a subsequent +51 order). The endpoint therefore lets any authenticated customer set an effectively arbitrary credit position.",
+              "remediation_steps": "Validate the deposit amount server-side at PUT /rest/wallet/balance: require a positive value, and enforce sane per-transaction and cumulative deposit limits. Do not trust the client-supplied \"balance\"/amount field as the deposit amount at all — derive the credited amount from a server-side payment-provider confirmation. Reject negative amounts explicitly before mutating the wallet.",
+              "counterevidence": "Checked whether deposits were validated server-side: positive deposits are always ADDED (PUT 50 -> 51, PUT 5000 -> 4951 from prior balances), proving the handler adds rather than sets, and it accepts negative values with no floor at zero. The 402 \"Payment not accepted\" path only triggers on missing/invalid paymentId, i.e. the guard validates card ownership, not amount. No WAF or amount validation rejected any request. The arbitrary positive top-up was verified three times with amounts (50, 5000) never charged to any real funding source.",
+              "confidence": "high",
+              "severity_change_conditions": "Confirmation that a real payment provider integration exists and charges the card would lower severity of the positive top-up leg; none is present in this deployment.",
+              "poc": {
+                "description": "1. Register/login as any customer and save a payment card via POST /api/Cards (e.g. cardNum 4111111111111111, expMonth 1, expYear 2087).\n2. GET /rest/wallet/balance to record the starting balance.\n3. PUT /rest/wallet/balance with {\"balance\": 5000, \"paymentId\": <card id>} — responds 200 with data 5000.\n4. GET /rest/wallet/balance shows the starting balance PLUS 5000.\n5. Repeat with {\"balance\": -100, \"paymentId\": <card id>} — balance goes negative; no payment is ever actually processed.",
+                "script_available": true
+              }
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/idor-cross-user-coupon-application",
+          "ruleIndex": 14,
+          "kind": "open",
+          "level": "none",
+          "message": {
+            "text": "IDOR — cross-user coupon application — Requires further review: PUT /rest/basket/:id/coupon/:coupon\n\nCould not test: every coupon shipped with this build (WMNSDY2019-2023, ORANGE2020-2023) has validOn dates in the past relative to the container clock (2026), so the server returns 404 \"Invalid coupon.\" before any ownership check runs. Ownership enforcement on this route is unverified."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "PUT /rest/basket/:id/coupon/:coupon"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "needs_follow_up",
+              "risk_area": "IDOR — cross-user coupon application",
+              "surface": "PUT /rest/basket/:id/coupon/:coupon",
+              "recorded_by": "Access Control / IDOR Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/idor-cross-user-payment-card-access",
+          "ruleIndex": 15,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "IDOR — cross-user payment card access — Ruled out: GET/PUT/DELETE /api/Cards/:id and GET /api/Cards\n\nEvery cross-user attempt as customer A returned 400 \"Malicious activity detected\" (per-object) or an empty list (GET /api/Cards returns only caller's cards); unauth per-object GET returns 401. Server-side ownership check present on all card paths tested."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "GET/PUT/DELETE /api/Cards/:id and GET /api/Cards"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "IDOR — cross-user payment card access",
+              "surface": "GET/PUT/DELETE /api/Cards/:id and GET /api/Cards",
+              "recorded_by": "Access Control / IDOR Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/idor-cross-user-address-read",
+          "ruleIndex": 16,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "IDOR — cross-user address read — Ruled out: GET /api/Addresss/:id (per-object read)\n\nGET /api/Addresss/7 as customer A returns 400 \"Malicious activity detected.\"; GET /api/Addresss list returns only the caller's own addresses. Read path enforced even though the write path is not."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "GET /api/Addresss/:id (per-object read)"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "IDOR — cross-user address read",
+              "surface": "GET /api/Addresss/:id (per-object read)",
+              "recorded_by": "Access Control / IDOR Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/broken-access-control-cross-user-record-modification-and-security-answer-disclosure",
+          "ruleIndex": 17,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Broken access control — cross-user record modification and security-answer disclosure — Ruled out: PUT /api/Users/:id and GET /api/SecurityAnswers(/:id)\n\nPUT /api/Users/27 as customer A returns 401 (JWT-based authorization check on model update); GET /api/SecurityAnswers and /api/SecurityAnswers/27 return 401 for Bearer and cookie auth as any customer. Controls run on every tested path."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "PUT /api/Users/:id and GET /api/SecurityAnswers(/:id)"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "Broken access control — cross-user record modification and security-answer disclosure",
+              "surface": "PUT /api/Users/:id and GET /api/SecurityAnswers(/:id)",
+              "recorded_by": "Access Control / IDOR Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/bfla-admin-function-level-authorization-with-customer-jwt",
+          "ruleIndex": 18,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "BFLA — admin function-level authorization with customer JWT — Ruled out: GET /rest/order-history/orders, PUT /rest/order-history/:id/delivery-status, PUT /rest/products/:id, POST /rest/admin\n\nGET /rest/order-history/orders and PUT delivery-status return 403 \"Malicious activity detected\" for customer tokens and unauthenticated requests — server-side role enforcement is present. PUT /rest/products/:id and POST /rest/admin are not registered routes in this build (500 \"Unexpected path\"), so no admin function is reachable there."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "GET /rest/order-history/orders, PUT /rest/order-history/:id/delivery-status, PUT /rest/products/:id, POST /rest/admin"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "BFLA — admin function-level authorization with customer JWT",
+              "surface": "GET /rest/order-history/orders, PUT /rest/order-history/:id/delivery-status, PUT /rest/products/:id, POST /rest/admin",
+              "recorded_by": "Access Control / IDOR Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/broken-access-control-unauthenticated-admin-configuration-disclosure",
+          "ruleIndex": 19,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Broken access control — unauthenticated admin configuration disclosure — No issue identified: GET /rest/admin/application-configuration\n\nVerified 200 unauthenticated and dump saved (/workspace/idor/appconfig.json, 23KB). Reviewed the full config: application branding, chatbot model name, challenge hints config, UI toggles, security.txt — no credentials, keys, secrets, or admin-only data. Informational exposure only, not reportable as a vulnerability."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "GET /rest/admin/application-configuration"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "Broken access control — unauthenticated admin configuration disclosure",
+              "surface": "GET /rest/admin/application-configuration",
+              "recorded_by": "Access Control / IDOR Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/llm01-direct-prompt-injection-system-prompt-extraction-llm07-08",
+          "ruleIndex": 20,
+          "kind": "open",
+          "level": "none",
+          "message": {
+            "text": "LLM01 direct prompt injection / system prompt extraction (LLM07/08) — Requires further review: POST /rest/chat (Juicy chatbot, Juice Shop v20.2.0)\n\nLLM inference backend unreachable from server: every valid request returns `AI_RetryError: Failed after 3 attempts. Last error: Cannot connect to API: connect ECONNREFUSED 127.0.0.1:11434` (reproduced 3/3 unauth and authed). Model `gemma4:e4b` never invoked (llm_input_tokens_total=0 in /metrics). Also confirmed server accepts attacker-supplied `system`-role messages unauthenticated (ready injection primitive), but no model compliance can be observed. Open proof gap, not ruled out."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "POST /rest/chat (Juicy chatbot, Juice Shop v20.2.0)"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "needs_follow_up",
+              "risk_area": "LLM01 direct prompt injection / system prompt extraction (LLM07/08)",
+              "surface": "POST /rest/chat (Juicy chatbot, Juice Shop v20.2.0)",
+              "recorded_by": "LLM Security Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/llm03-excessive-agency-tool-call-abuse-cross-user-actions-hidden-data",
+          "ruleIndex": 21,
+          "kind": "open",
+          "level": "none",
+          "message": {
+            "text": "LLM03 excessive agency / tool-call abuse (cross-user actions, hidden data) — Requires further review: POST /rest/chat tool invocation path\n\nSame blocker: LLM backend ECONNREFUSED, zero tool calls ever made (juiceshop_llm_tool_calls_total absent/0). Chatbot's product/coupon tools cannot be exercised; no cross-user action or hidden-data disclosure observable. Deployment ships tool-capable chatbot (config show_tool_calls, challenge set confirms coupon/product tools) but it is inert here."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "POST /rest/chat tool invocation path"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "needs_follow_up",
+              "risk_area": "LLM03 excessive agency / tool-call abuse (cross-user actions, hidden data)",
+              "surface": "POST /rest/chat tool invocation path",
+              "recorded_by": "LLM Security Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/llm01-indirect-prompt-injection-via-product-reviews-feedback",
+          "ruleIndex": 22,
+          "kind": "open",
+          "level": "none",
+          "message": {
+            "text": "LLM01 indirect prompt injection via product reviews/feedback — Requires further review: POST /rest/chat fed by /rest/products/:id/reviews and /api/Feedbacks content\n\nBackend outage blocks the trigger phase: planted review/feedback would never be retrieved or followed because the model produces no output (ECONNREFUSED, 0 tokens processed). No feedback/reviews were planted (avoided polluting data since the test could not complete). Needs retest once Ollama is reachable from the Juice Shop server."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "POST /rest/chat fed by /rest/products/:id/reviews and /api/Feedbacks content"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "needs_follow_up",
+              "risk_area": "LLM01 indirect prompt injection via product reviews/feedback",
+              "surface": "POST /rest/chat fed by /rest/products/:id/reviews and /api/Feedbacks content",
+              "recorded_by": "LLM Security Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/llm10-improper-output-handling-xss-via-rendered-chat-output",
+          "ruleIndex": 23,
+          "kind": "open",
+          "level": "none",
+          "message": {
+            "text": "LLM10 improper output handling (XSS via rendered chat output) — Requires further review: Chatbot output rendering in Angular chat conversation UI\n\nFrontend renders chat responses via text interpolation into the DOM (no innerHTML sinks found in chat components in main.js), and the model produces no output in this deployment (ECONNREFUSED), so no unsafe rendering is demonstrable. The error-path JSON is plain text in an SSE body. Cannot confirm or rule out markdown-image/HTML injection effects; blocked by backend outage."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Chatbot output rendering in Angular chat conversation UI"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "needs_follow_up",
+              "risk_area": "LLM10 improper output handling (XSS via rendered chat output)",
+              "surface": "Chatbot output rendering in Angular chat conversation UI",
+              "recorded_by": "LLM Security Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/sql-injection",
+          "ruleIndex": 24,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "SQL injection — Ruled out: POST/GET /rest/track-order\n\nNo injection surface: GET /rest/track-order/:id strips all non-alphanumeric characters from orderId before use (probes `'`, `' OR 1=1--`, `' UNION SELECT 1--` all echoed back sanitized with no SQL error, no differential). POST /rest/track-order does not exist as a route in v20.2.0 (Express catch-all returns \"Unexpected path\" — request never reaches a DB query). Challenge list confirms no track-order SQLi challenge in this version."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "POST/GET /rest/track-order"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "SQL injection",
+              "surface": "POST/GET /rest/track-order",
+              "recorded_by": "SQLi Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/stored-xss-in-feedback-comment",
+          "ruleIndex": 25,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Stored XSS in feedback comment — No issue identified: POST /api/Feedbacks (comment field, sanitize-html 1.4.2)\n\nServer-side sanitize-html allowlist strips iframe/script/img/event handlers; 20+ payload variants (case tricks, entity encoding, null bytes, nested-tag parser differentials, javascript:/data: href) all stripped. PUT /api/Feedbacks/:id rejects valid Bearer JWTs (express-jwt 0.1.3 bug). No working bypass found."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "POST /api/Feedbacks (comment field, sanitize-html 1.4.2)"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "Stored XSS in feedback comment",
+              "surface": "POST /api/Feedbacks (comment field, sanitize-html 1.4.2)",
+              "recorded_by": "XSS Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/2fa-bypass-totpsecret-leakage",
+          "ruleIndex": 26,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "2FA bypass / totpSecret leakage — No issue identified: POST /rest/2fa/* (status, setup, verify, disable)\n\nFull 2FA lifecycle tested: setup requires password, verify requires tmpToken+valid TOTP. Code replay with the SAME tmpToken is accepted (no one-time-use enforcement) but fresh tmpTokens cannot reuse an old code and the accepted time window is narrow (rejected 1 window old codes in brute test) — practically not exploitable. 2FA disable requires password. Status endpoint leaks own totpSecret+setupToken to the owner only (requires valid token). No cross-user secret read found; no bypass confirmed."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "POST /rest/2fa/* (status, setup, verify, disable)"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "2FA bypass / totpSecret leakage",
+              "surface": "POST /rest/2fa/* (status, setup, verify, disable)",
+              "recorded_by": "Auth / JWT Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/stored-xss-in-product-reviews",
+          "ruleIndex": 27,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Stored XSS in product reviews — No issue identified: PUT /rest/products/:id/reviews (message field)\n\nPUT /rest/products/1/reviews stored raw HTML without sanitization, but the product-details dialog renders review messages via Angular text interpolation (yv(e.message)), which HTML-encodes output. Payload rendered as visible text, no execution. Probe review left in place (harmless escaped text) — could not delete via API."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "PUT /rest/products/:id/reviews (message field)"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "Stored XSS in product reviews",
+              "surface": "PUT /rest/products/:id/reviews (message field)",
+              "recorded_by": "XSS Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/stored-xss-via-product-description-innerhtml-sink",
+          "ruleIndex": 28,
+          "kind": "open",
+          "level": "none",
+          "message": {
+            "text": "Stored XSS via product description innerHTML sink — Requires further review: PUT /api/Products/:id (description field)\n\nCustomer JWT PUT /api/Products/1 accepts arbitrary description (no authz check), and the product-details dialog renders description via [innerHTML]. Payload <iframe src=\"javascript:...\"> was stripped by upstream sanitize-html on the PUT echo, but the API accepts unsanitized description values via other write paths. No confirmed execution within remaining budget — needs a payload that survives the PUT round-trip (img/event-handler payloads not yet tested on this sink)."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "PUT /api/Products/:id (description field)"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "needs_follow_up",
+              "risk_area": "Stored XSS via product description innerHTML sink",
+              "surface": "PUT /api/Products/:id (description field)",
+              "recorded_by": "XSS Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/sql-injection",
+          "ruleIndex": 24,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "SQL injection — Ruled out: GET /rest/user/authentication-details/:email\n\nAuth-required (401 without header). With admin session all payload variants (valid email, `'--`, `OR 1=1`, `UNION SELECT`) return the Express catch-all \"Unexpected path\" error — the route does not resolve these path segments to the handler at all, so no query executes. No SQL error, no differential."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "GET /rest/user/authentication-details/:email"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "SQL injection",
+              "surface": "GET /rest/user/authentication-details/:email",
+              "recorded_by": "SQLi Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/ssrf-server-side-request-forgery",
+          "ruleIndex": 29,
+          "kind": "open",
+          "level": "none",
+          "message": {
+            "text": "SSRF / server-side request forgery — Requires further review: POST /dataerasure (layout param)\n\nPOST /dataerasure accepts a `layout` parameter passed to res.render → local file read of arbitrary templates (ENOENT error confirmed server-side path use; blocked only for paths containing ftp/ctf.key/encryptionkeys). This is LFR/template abuse, not an outbound-request SSRF; no server-initiated request occurs. Out of my SSRF/redirect lane — flagging for injection/file-read specialist."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "POST /dataerasure (layout param)"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "needs_follow_up",
+              "risk_area": "SSRF / server-side request forgery",
+              "surface": "POST /dataerasure (layout param)",
+              "recorded_by": "SSRF / Redirect Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/ssrf-via-llm-chatbot-b2b-orders",
+          "ruleIndex": 30,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "SSRF via LLM chatbot / B2B orders — No issue identified: POST /rest/chat, POST /b2b/v2/orders\n\nChatbot tools operate on DB queries only (products/reviews/orders/coupons); no outbound URL fetch in the LLM tool set. B2B /b2b/v2/orders is an eval/RCE challenge, not SSRF. No URL-fetching surface found in these features."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "POST /rest/chat, POST /b2b/v2/orders"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "SSRF via LLM chatbot / B2B orders",
+              "surface": "POST /rest/chat, POST /b2b/v2/orders",
+              "recorded_by": "SSRF / Redirect Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/sql-injection",
+          "ruleIndex": 24,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "SQL injection — Ruled out: PUT /rest/basket/1/coupon/:coupon\n\nAll SQLi payload variants (', OR 1=1, UNION) against the coupon path return uniform 404 \"Invalid coupon.\" — no SQL error, no differential; coupon codes are validated against a hardcoded table, not raw SQL."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "PUT /rest/basket/1/coupon/:coupon"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "SQL injection",
+              "surface": "PUT /rest/basket/1/coupon/:coupon",
+              "recorded_by": "SQLi Specialist",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/sql-injection",
+          "ruleIndex": 24,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "SQL injection — Ruled out: GET /rest/user/security-question?email=\n\nAll SQLi payload variants (', OR 1=1, quotes) return 200 with empty question object — parameterized/bound query, no SQL error, no differential."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "GET /rest/user/security-question?email="
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "SQL injection",
+              "surface": "GET /rest/user/security-question?email=",
+              "recorded_by": "SQLi Specialist",
+              "source": "agent_reported"
+            }
+          }
+        }
+      ],
+      "invocations": [
+        {
+          "executionSuccessful": false,
+          "toolExecutionNotifications": [
+            {
+              "level": "warning",
+              "message": {
+                "text": "1 agent(s) did not finish cleanly (Misconfig / Exposure Specialist); any surface they held is under-covered."
+              }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "syntheticLocationCount": 18
+      }
+    }
+  ]
+}
