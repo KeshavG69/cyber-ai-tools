@@ -258,13 +258,24 @@ def start_scan(body: NewScan, _: bool = Depends(require_auth)):
     lines: list[str] = []          # rolling buffer of engine output (last 200 lines)
     lock = threading.Lock()
 
+    def _redact(text: str) -> str:
+        # never echo secret values back to the client or into logs
+        for var in ("LLM_API_KEY", "DASH_PASSWORD"):
+            val = os.environ.get(var)
+            if val and len(val) >= 6:
+                text = text.replace(val, "***")
+        return text
+
     def reader():
         assert proc.stdout is not None
         for line in proc.stdout:
+            clean = _redact(line.rstrip("\n"))
             with lock:
-                lines.append(line.rstrip("\n"))
+                lines.append(clean)
                 if len(lines) > 200:
                     del lines[:-200]
+            # tee to container stdout so full engine output shows in platform logs
+            print(f"[strix] {clean}", flush=True)
             if not captured["run"]:
                 m = re.search(r"strix_runs/([A-Za-z0-9._-]+)", line)
                 if m:
@@ -274,14 +285,6 @@ def start_scan(body: NewScan, _: bool = Depends(require_auth)):
             proc.stdout.close()
         except Exception:
             pass
-
-    def _redact(text: str) -> str:
-        # never echo secret values back to the client
-        for var in ("LLM_API_KEY", "DASH_PASSWORD"):
-            val = os.environ.get(var)
-            if val and len(val) >= 6:
-                text = text.replace(val, "***")
-        return text
 
     threading.Thread(target=reader, daemon=True).start()
     for _i in range(60):  # wait up to ~30s for the run dir/name
