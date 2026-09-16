@@ -13,6 +13,16 @@ set -euo pipefail
 PORT="${1:-8080}"
 cd "$(cd "$(dirname "$0")/../.." && pwd)"   # repo root
 
+# Use the project virtualenv if present.
+if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi
+
+# Fail with a clear setup hint if deps aren't installed.
+if ! command -v uvicorn >/dev/null 2>&1; then
+  echo "uvicorn not found. First-time setup:" >&2
+  echo "  python3 -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt" >&2
+  exit 1
+fi
+
 # Load .env if present (never committed — see .gitignore)
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
 
