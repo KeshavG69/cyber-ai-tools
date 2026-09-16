@@ -23,3 +23,6 @@ Thumbs.db
 # Strix runtime: keep the bundled demo run, ignore new local scan runs
 /backend/strix_runs/*
 !/backend/strix_runs/host-docker-internal-3001_91b4/
+
+# Editor
+.vscode/
