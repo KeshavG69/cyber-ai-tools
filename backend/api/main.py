@@ -193,6 +193,23 @@ def run_transcript(run: str, after: int = 0, _: bool = Depends(require_auth)):
     return {"agents": state.get("agents", []), "total": len(events), "events": events[after:]}
 
 
+@app.get("/api/debug/config")
+def debug_config(_: bool = Depends(require_auth)):
+    """Diagnostic: shows how config reaches the container (presence only, NO values)."""
+    keys = ["STRIX_LLM", "LLM_API_KEY", "LLM_API_BASE", "DASH_USER", "DASH_PASSWORD", "RUNS_DIR"]
+    dotenv_files = {p: pathlib.Path(p).exists() for p in (".env", "/app/.env", "/app/backend/.env")}
+    return {
+        "env_present": {k: bool(os.environ.get(k)) for k in keys},
+        "dotenv_files_found": dotenv_files,
+        "cwd": os.getcwd(),
+        "total_env_vars": len(os.environ),
+        # key NAMES only (never values) so we can see the injection mechanism
+        "matching_env_names": sorted(
+            k for k in os.environ if any(t in k.upper() for t in ("STRIX", "LLM", "DASH", "OPENROUTER"))
+        ),
+    }
+
+
 @app.get("/api/scans/{run}/status")
 def scan_status(run: str, _: bool = Depends(require_auth)):
     s = summarize(_run_dir(run))
