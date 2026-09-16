@@ -1,0 +1,15 @@
+# SoldierIQ Cyber — backend (top-level dependencies).
+#
+# This is the human-readable intent. The pinned lockfile the build installs is
+# requirements.txt (fully pinned, reproducible). Regenerate the lock after
+# changing this file:
+#
+#   uv pip install -r backend/requirements.in
+#   uv pip freeze > backend/requirements.txt   # then re-add the header
+#
+# Strix provides the autonomous pentest engine (+ report PDF generation).
+strix-agent==1.6.2
+
+# Local control API + dashboard server (backend/api/main.py)
+fastapi>=0.115
+uvicorn[standard]>=0.29
