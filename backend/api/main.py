@@ -202,7 +202,7 @@ def run_transcript(run: str, after: int = 0, _: bool = Depends(require_auth)):
 @app.get("/api/debug/config")
 def debug_config(_: bool = Depends(require_auth)):
     """Diagnostic: shows how config reaches the container (presence only, NO values)."""
-    keys = ["STRIX_LLM", "LLM_API_KEY", "LLM_API_BASE", "DASH_USER", "DASH_PASSWORD", "RUNS_DIR"]
+    keys = ["STRIX_LLM", "LLM_API_KEY", "LLM_API_BASE", "DASH_USER", "DASH_PASSWORD", "RUNS_DIR", "STRIX_RUNTIME_BACKEND"]
     dotenv_files = {p: pathlib.Path(p).exists() for p in (".env", "/app/.env", "/app/backend/.env")}
     return {
         "env_present": {k: bool(os.environ.get(k)) for k in keys},
@@ -274,7 +274,7 @@ def start_scan(body: NewScan, _: bool = Depends(require_auth)):
         if captured["run"]:
             break
         if proc.poll() is not None:
-            raise HTTPException(status_code=500, detail="Scan failed to start (check STRIX_LLM/LLM_API_KEY and Docker).")
+            raise HTTPException(status_code=500, detail="Scan failed to start (check STRIX_LLM/LLM_API_KEY, and that the runtime backend is available — set STRIX_RUNTIME_BACKEND=local for no-Docker in-container mode).")
         time.sleep(0.5)
     if not captured["run"]:
         raise HTTPException(status_code=504, detail="Scan started but run id not detected yet; check Past runs shortly.")
