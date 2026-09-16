@@ -1,77 +1,70 @@
 # SoldierIQ Cyber — Agentic AI Pentest Tool
 
 An open-source, autonomous, multi-agent AI penetration-testing tool with a custom
-**SoldierIQ Cyber** dashboard. You start pentests from the UI, watch the agent
-team work, and read validated findings (with PoCs + remediation). The engine is
-[Strix](https://github.com/usestrix/strix) (Apache-2.0); the dashboard + control
-API are our own — **no token, no email, no cloud**, protected by one password.
+**SoldierIQ Cyber** dashboard. Start pentests from the UI, watch the agents reason
+and run tools live, and read validated findings (with PoCs + remediation). The
+engine is [Strix](https://github.com/usestrix/strix) (Apache-2.0); the dashboard +
+control API are our own — **no token, no email, no cloud** — behind one password.
 
 ## What it does
+- **Start a pentest from the UI** — ＋ New Pentest → target + instructions + a
+  budget cap → the agents run in an isolated Kali sandbox.
+- **Watch live** — the **Activity** tab streams each agent's reasoning + tool calls;
+  the roster shows agents flipping running → completed.
+- **Findings** — expandable cards: description, impact, technical analysis, PoC,
+  remediation, CVSS. **Past runs** view lists every run.
+- **Download the report PDF** — generated on demand, no email.
 
-- **Start a pentest from the UI** — "＋ New Pentest" → enter a target you own +
-  optional instructions → the agents run in an isolated Kali sandbox.
-- **Watch it live** — the run shows as *scanning*, findings stream in, then it
-  completes with severity stats + an executive summary.
-- **Read findings** — expandable cards: description, impact, technical analysis,
-  proof-of-concept code, remediation, CVSS.
-- **Download the report PDF** — one click, generated on demand (no email).
-- **Browse past runs** — switch between runs in the header.
-
-## Requirements
-
-Runs on a **Docker host** (your Mac): Docker running, Python 3.12, and an LLM
-(cloud key or a local Ollama/vLLM endpoint). Launching a scan spins up a Kali
-sandbox container, so a real Docker daemon is required.
-
-## Run it locally
-
-```bash
-# 1. install
-python -m venv .venv && source .venv/bin/activate
-pip install -r backend/requirements.txt
-
-# 2. configure
-export STRIX_LLM="openrouter/z-ai/glm-5.3"   # or ollama/llama3 for a local GPU
-export LLM_API_KEY="..."                      # or LLM_API_BASE for a local model
-export DASH_PASSWORD="choose-a-password"       # login password (default: soldieriq)
-
-# 3. start the app  ->  http://127.0.0.1:8080  (login: admin / your password)
-backend/scripts/serve_app.sh 8080
-```
-Then click **＋ New Pentest**, enter a target you own (e.g. a local OWASP Juice
-Shop: `docker run -d -p 3001:3000 bkimminich/juice-shop`, target
-`http://host.docker.internal:3001`), tick the authorization box, and **Start scan**.
-
-> ⚠️ Only ever scan a target you own or have explicit written permission to test.
-
-## Layout
-
+## Structure (single self-contained service)
 ```
 cyber-ai-tool/
-├── Dockerfile            # full-app image (uvicorn); see header for scan-enabled run
-├── railway.json
-├── backend/
-│   ├── requirements.txt      # strix-agent + fastapi + uvicorn
-│   ├── api/main.py           # dashboard + control API (list/view/launch runs, PDF)
-│   ├── scripts/serve_app.sh  # run the full local app (dashboard + launch scans)
-│   ├── scripts/run_scan.sh   # optional: run a scan straight from the CLI
-│   └── strix_runs/           # runs live here (bundled demo run included)
-└── frontend/
-    └── app/index.html        # the dashboard (New Pentest form, run switcher, findings)
+├── .env.example              # copy to .env (STRIX_LLM, LLM_API_KEY, DASH_*)
+└── backend/                  # the whole deployable service (build context)
+    ├── Dockerfile            # builds this folder -> one image
+    ├── requirements.txt      # pinned lockfile (reproducible) + requirements.in
+    ├── api/
+    │   ├── main.py           # dashboard + control API (list/view/launch runs, PDF)
+    │   └── webui/index.html  # the dashboard (served at /)
+    ├── scripts/
+    │   ├── serve_app.sh      # run the full app locally (loads ../.env)
+    │   └── run_scan.sh       # optional: launch a scan from the CLI
+    └── strix_runs/           # runs live here (bundled demo run included)
+```
+> Everything the service needs is under `backend/`, so platforms that build a
+> service from its folder (e.g. **OrionHub**, which builds the `backend/` context)
+> get a complete image — dashboard included.
+
+## Run locally
+```bash
+cp .env.example .env          # set LLM_API_KEY + DASH_PASSWORD
+python -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt
+backend/scripts/serve_app.sh 8080     # http://127.0.0.1:8080  (login: admin / your password)
+```
+Or via Docker (same as the platform build):
+```bash
+docker build -t soldieriq-cyber backend/
+docker run -d -p 8080:8080 --env-file .env soldieriq-cyber
 ```
 
-## API (all behind basic-auth)
+## Requirements & the one caveat
+Runs on a **Docker host** (your Mac / an Orionhub node). Viewing runs works
+anywhere; **launching** a scan needs a real Docker daemon (Strix starts a Kali
+sandbox container), so on Kubernetes the pod needs Docker access (node socket).
 
-`GET /api/runs` · `GET /api/runs/{run}/summary` · `GET /api/runs/{run}/vulnerabilities`
-· `GET /api/runs/{run}/report.pdf` · `POST /api/scans` `{target, instruction, authorized}`
-· `GET /api/scans/{run}/status`
+## Config (env)
+`STRIX_LLM`, `LLM_API_KEY` (or `LLM_API_BASE` for a local model), `DASH_USER`
+(default `admin`), `DASH_PASSWORD`, `PORT` (default 8080), `RUNS_DIR`.
+
+## API (behind basic-auth)
+`GET /api/runs` · `/api/runs/{run}/summary` · `/vulnerabilities` · `/report.pdf` ·
+`/transcript` · `POST /api/scans` `{target, instruction, authorized, max_budget}` ·
+`GET /api/scans/{run}/status`
 
 ## Roadmap
+- [ ] Metasploit via MCP (network exploitation)
+- [ ] LLM on Orionhub's local GPU (Ollama / vLLM) — full air-gap
+- [ ] Scan-launch on k3s (mount node Docker socket)
+- [ ] Ingest SA data (TAK / knowledge base) as agent context
 
-- [ ] Add **Metasploit** via MCP (network exploitation)
-- [ ] Point the LLM at **Orionhub's local GPU** (Ollama / vLLM) — full air-gap
-- [ ] Live agent-transcript streaming; target allowlist
-- [ ] Ingest **SA data** (TAK / knowledge base) as agent context
-
-Engine: [Strix](https://github.com/usestrix/strix) (Apache-2.0). This repo is the
-SoldierIQ Cyber dashboard + control API around it.
+Engine: [Strix](https://github.com/usestrix/strix) (Apache-2.0).

@@ -28,9 +28,12 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]          # repo root
-RUNS_DIR = pathlib.Path(os.environ.get("RUNS_DIR", ROOT / "backend" / "strix_runs"))
-INDEX = ROOT / "frontend" / "app" / "index.html"
+# Paths are relative to this package so the service is self-contained (works both
+# in local dev and when OrionHub builds the backend/ folder as the build context).
+APP_DIR = pathlib.Path(__file__).resolve().parent          # .../backend/api
+SERVICE_ROOT = APP_DIR.parent                              # .../backend
+RUNS_DIR = pathlib.Path(os.environ.get("RUNS_DIR", SERVICE_ROOT / "strix_runs"))
+INDEX = APP_DIR / "webui" / "index.html"
 DASH_USER = os.environ.get("DASH_USER", "admin")
 DASH_PASSWORD = os.environ.get("DASH_PASSWORD", "soldieriq")
 
