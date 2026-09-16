@@ -15,11 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Only infra defaults here. App config (DASH_USER/DASH_PASSWORD, STRIX_LLM,
+# LLM_API_KEY, RUNS_DIR) is left UNSET so platform-provided values (OrionHub env
+# or a mounted .env) win; the app falls back to sensible defaults in code.
 ENV PORT=8080 \
-    DASH_USER=admin \
-    DASH_PASSWORD=soldieriq \
-    PYTHONPATH=/app \
-    RUNS_DIR=/app/strix_runs
+    PYTHONPATH=/app
 EXPOSE 8080
 # Context is backend/, so the package is importable as api.main at /app.
 CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT}"]

@@ -28,6 +28,19 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
+# Some platforms (e.g. OrionHub) deliver config as a mounted .env file rather than
+# real env vars, and the container CMD runs uvicorn directly (no shell to source it).
+# Load any .env we can find so STRIX_LLM / LLM_API_KEY / DASH_* are picked up.
+# Real environment variables always take precedence (override=False).
+try:
+    from dotenv import load_dotenv
+
+    for _envpath in (".env", "/app/.env", "/app/backend/.env"):
+        load_dotenv(_envpath, override=False)
+    load_dotenv(override=False)  # also search CWD upward
+except Exception:
+    pass
+
 # Paths are relative to this package so the service is self-contained (works both
 # in local dev and when OrionHub builds the backend/ folder as the build context).
 APP_DIR = pathlib.Path(__file__).resolve().parent          # .../backend/api

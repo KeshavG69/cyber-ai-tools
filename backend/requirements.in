@@ -13,3 +13,4 @@ strix-agent==1.6.2
 # Local control API + dashboard server (backend/api/main.py)
 fastapi>=0.115
 uvicorn[standard]>=0.29
+python-dotenv>=1.0   # load a mounted .env (e.g. OrionHub-provided config)
