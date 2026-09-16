@@ -41,6 +41,12 @@ try:
 except Exception:
     pass
 
+# STRIX_LLM has no default elsewhere and some platforms don't inject "app default"
+# values. Default it (overridable by any real env var / OrionHub MANUAL value) so
+# scans can launch — and so the strix subprocess, which reads STRIX_LLM from the
+# environment, inherits it. LLM_API_KEY must still be provided by the platform.
+os.environ.setdefault("STRIX_LLM", "openrouter/z-ai/glm-5.3")
+
 # Paths are relative to this package so the service is self-contained (works both
 # in local dev and when OrionHub builds the backend/ folder as the build context).
 APP_DIR = pathlib.Path(__file__).resolve().parent          # .../backend/api
