@@ -72,6 +72,13 @@
   .toolres[open]{color:var(--text)}
   .foot{color:var(--muted);font-size:12px;margin-top:30px;text-align:center}
   .empty{padding:60px 0;text-align:center;color:var(--muted)}
+  .runlist{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+  .runrow{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer}
+  .runrow:hover{background:var(--panel2)}
+  .rl-main{flex:1;min-width:0}
+  .rl-target{font-weight:600;font-family:ui-monospace,Menlo,monospace;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rl-side{display:flex;flex-direction:column;align-items:flex-end;gap:3px;white-space:nowrap}
+  .sevmini{font-weight:700;font-size:12px;margin-left:6px}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:50;padding:20px}.overlay.on{display:grid}
   .modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;max-width:520px;width:100%;padding:22px}
   .modal h3{margin:0 0 4px;font-size:18px}.modal .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
@@ -88,6 +95,7 @@
     <span class="pill" id="statusPill">Local</span>
     <div class="spacer"></div>
     <select id="runSelect" title="Select a run" onchange="selectRun(this.value)"></select>
+    <button class="btn sec" onclick="showRuns()">🕘 Past runs</button>
     <button class="btn" onclick="openModal()">＋ New Pentest</button>
     <a class="btn sec" id="pdfLink" href="#" download>⬇ PDF</a>
   </div></header>
@@ -204,6 +212,31 @@ function renderTab(v){
 function setTab(t){TAB=t;const v=window.__vulns||[];render(LASTSTAT,v);}
 
 /* ---------- data loading ---------- */
+/* ---------- past runs list ---------- */
+function runCard(r){
+  const c=r.severity_counts||{};
+  let date=""; try{date=r.start?new Date(r.start).toLocaleString():""}catch(_){}
+  const sev=[["crit",c.critical||0],["high",c.high||0],["med",c.medium||0],["low",(c.low||0)+(c.info||0)]]
+    .filter(x=>x[1]>0).map(x=>`<span class="sevmini sev-${x[0]}">●${x[1]}</span>`).join("")||'<span class="fmeta">no findings</span>';
+  const running=r.status==="running";
+  return `<div class="runrow" onclick="selectRun('${esc(r.run_name)}')">
+    <div class="rl-main">
+      <div class="rl-target">${esc(r.target)}</div>
+      <div class="fmeta">${esc(date)} · ${esc(r.mode||'deep')} · ${running?'<span class="st-running">● running</span>':esc(r.status||'done')+' in '+fmtDur(r.duration_seconds)}</div>
+    </div>
+    <div class="rl-side"><div>${sev}</div><span class="fmeta">${r.total_findings} findings · ${r.agents} agents</span></div>
+    <span class="chev">›</span></div>`;
+}
+async function showRuns(){
+  if(poller){clearInterval(poller);poller=null}
+  document.getElementById("pdfLink").style.display="none";
+  let runs=[];try{runs=await api("/api/runs")}catch(e){}
+  const root=document.getElementById("root");
+  if(!runs.length){root.innerHTML='<div class="empty">No runs yet. Click <b>＋ New Pentest</b> to start one.</div>';return;}
+  root.innerHTML=`<h1>Past runs</h1><div class="meta">${runs.length} run${runs.length>1?"s":""} on this machine</div>
+    <div class="runlist">${runs.map(runCard).join("")}</div>`;
+}
+
 async function loadRuns(sel){
   let runs=[];try{runs=await api("/api/runs")}catch(e){}
   const sB=document.getElementById("runSelect");
