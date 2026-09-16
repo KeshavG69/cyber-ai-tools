@@ -255,10 +255,16 @@ def start_scan(body: NewScan, _: bool = Depends(require_auth)):
         bufsize=1,
     )
     captured = {"run": None}
+    lines: list[str] = []          # rolling buffer of engine output (last 200 lines)
+    lock = threading.Lock()
 
     def reader():
         assert proc.stdout is not None
         for line in proc.stdout:
+            with lock:
+                lines.append(line.rstrip("\n"))
+                if len(lines) > 200:
+                    del lines[:-200]
             if not captured["run"]:
                 m = re.search(r"strix_runs/([A-Za-z0-9._-]+)", line)
                 if m:
@@ -269,12 +275,27 @@ def start_scan(body: NewScan, _: bool = Depends(require_auth)):
         except Exception:
             pass
 
+    def _redact(text: str) -> str:
+        # never echo secret values back to the client
+        for var in ("LLM_API_KEY", "DASH_PASSWORD"):
+            val = os.environ.get(var)
+            if val and len(val) >= 6:
+                text = text.replace(val, "***")
+        return text
+
     threading.Thread(target=reader, daemon=True).start()
     for _i in range(60):  # wait up to ~30s for the run dir/name
         if captured["run"]:
             break
         if proc.poll() is not None:
-            raise HTTPException(status_code=500, detail="Scan failed to start (check STRIX_LLM/LLM_API_KEY, and that the runtime backend is available — set STRIX_RUNTIME_BACKEND=local for no-Docker in-container mode).")
+            time.sleep(0.3)  # let the reader drain any final lines
+            with lock:
+                tail = "\n".join(lines[-40:]).strip()
+            hint = _redact(tail) or "no output captured from the engine"
+            raise HTTPException(
+                status_code=500,
+                detail=f"Scan process exited (code {proc.returncode}) before a run started. Engine output:\n{hint}",
+            )
         time.sleep(0.5)
     if not captured["run"]:
         raise HTTPException(status_code=504, detail="Scan started but run id not detected yet; check Past runs shortly.")
