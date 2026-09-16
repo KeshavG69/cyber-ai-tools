@@ -1,46 +1,27 @@
-# backend — engine + viewer server
+# backend
 
-The Python side of SoldierIQ Cyber. Today it is a thin, well-defined layer
-around **Strix** (`strix-agent`), which provides both:
+Python side of SoldierIQ Cyber: the **control API + dashboard server** and the
+**Strix engine** it drives.
 
-- the **scan engine** (autonomous multi-agent pentester, runs in a Docker sandbox), and
-- the **viewer server + REST API** that the dashboard frontend talks to.
+- `requirements.txt` — `strix-agent` (engine + PDF) + `fastapi` + `uvicorn`.
+- `api/main.py` — FastAPI app. Serves the dashboard and:
+  - `GET  /api/runs` — list runs (computed from `strix_runs/`)
+  - `GET  /api/runs/{run}/summary` — overview (target, timing, severity counts…)
+  - `GET  /api/runs/{run}/vulnerabilities` — findings
+  - `GET  /api/runs/{run}/report.pdf` — report PDF, generated on demand (no email)
+  - `POST /api/scans` `{target, instruction, authorized}` — launch a pentest
+  - `GET  /api/scans/{run}/status` — live status while a scan runs
 
-## Contents
+  All routes are behind HTTP basic-auth (`DASH_USER` / `DASH_PASSWORD`).
+- `scripts/serve_app.sh` — run the full app locally (uvicorn on the host).
+- `scripts/run_scan.sh` — optional: launch a scan straight from the CLI.
+- `strix_runs/` — where runs are written; ships with a demo run (OWASP Juice Shop).
 
-- `requirements.txt` — pinned `strix-agent==1.6.2` (+ placeholders for future
-  FastAPI / Agno code as we build a SoldierIQ-native layer).
-- `patches/unblock_history.py` — appends an `is_verified()` override to the Strix
-  viewer so **"Past runs" history needs no email one-time-code**. Idempotent.
-- `scripts/apply_whitelabel.sh` — apply the unblock patch **and** the frontend
-  branding overlay to a LOCAL `strix` install (for local dev).
-- `scripts/run_scan.sh` — run a pentest against an authorized target (needs Docker + an LLM).
-- `scripts/serve_dashboard.sh` — serve the dashboard locally for a run.
-- `strix_runs/` — a bundled finished run (OWASP Juice Shop) used as demo data.
+### Env
+- `STRIX_LLM` + `LLM_API_KEY` (or `LLM_API_BASE`) — required to launch scans.
+- `DASH_USER` (default `admin`) / `DASH_PASSWORD` (default `soldieriq`).
+- `RUNS_DIR` (default `backend/strix_runs`) / `PORT` (default 8080).
 
-## Viewer REST API (served by `strix view`)
-
-The frontend consumes these (token-authorized):
-
-| Endpoint | Returns |
-|----------|---------|
-| `GET /api/run` | run metadata + status |
-| `GET /api/runs` | run history list (unblocked by the patch — no email) |
-| `GET /api/transcript` | live agent transcripts (thinking + tool calls) |
-| `GET /api/vulnerabilities` | validated findings |
-| `GET /api/report` | the generated pentest report |
-
-## Local dev
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-scripts/apply_whitelabel.sh                     # brand + unblock the local install
-scripts/serve_dashboard.sh host-docker-internal-3001_91b4 8080
-```
-
-## Where new backend code goes
-
-A SoldierIQ-native API/agent layer (FastAPI + Agno, SA-data ingestion, a custom
-tool allowlist for Metasploit) belongs here as its own package alongside the
-Strix integration.
+Launching a scan runs `strix -n -t <target>` in a Kali sandbox container, so this
+must run on a **Docker host**. A future SoldierIQ-native layer (Agno agents,
+SA-data ingestion, a Metasploit tool allowlist) belongs here.

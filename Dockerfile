@@ -1,31 +1,28 @@
-# SoldierIQ Cyber — dashboard image (Railway-ready).
+# SoldierIQ Cyber — full app image (dashboard + control API).
 #
-# Serves the white-labeled Strix viewer + REST API for a bundled run.
-# This image is the CONTROL PLANE (the dashboard). It does NOT run scans —
-# scanning needs a Docker host (your Mac / Orionhub). See README.md.
+# Serves the dashboard and the REST API (list runs, view findings, download PDF,
+# and launch new pentests). Reading runs works anywhere; LAUNCHING a scan needs a
+# Docker host — run with the Docker socket mounted and the LLM env set:
 #
-# Railway builds this Dockerfile from the repo root.
+#   docker run -d -p 8080:8080 \
+#     -e DASH_PASSWORD=secret -e STRIX_LLM=openrouter/z-ai/glm-5.3 -e LLM_API_KEY=... \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     soldieriq-cyber
+#
+# For local development prefer backend/scripts/serve_app.sh (uvicorn on the host).
 FROM python:3.12-slim
 WORKDIR /app
 
-# --- Backend: Strix provides the viewer server + REST API + engine ---
-COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# --- Apply backend patch (unblock Past-runs email gate) + frontend overlay ---
-COPY backend/patches ./patches
-COPY frontend/whitelabel ./frontend/whitelabel
-RUN python patches/unblock_history.py \
- && SITE="$(python -c "import strix, os; print(os.path.join(os.path.dirname(strix.__file__), 'interface', 'viewer', 'static'))")" \
- && cp frontend/whitelabel/index.html "$SITE/index.html"
+COPY . .
 
-# --- Bundled demo run so the dashboard shows real findings on deploy ---
-COPY backend/strix_runs ./strix_runs
-
-# Railway injects $PORT; default 8080 for local `docker run`.
-ENV PORT=8080
-ENV RUN_NAME=host-docker-internal-3001_91b4
+ENV PORT=8080 \
+    DASH_USER=admin \
+    DASH_PASSWORD=soldieriq \
+    PYTHONPATH=/app \
+    RUNS_DIR=/app/backend/strix_runs
 EXPOSE 8080
-
-# Bind 0.0.0.0 so the platform can route to it; --no-open (headless container).
-CMD ["sh", "-c", "strix view \"$RUN_NAME\" --host 0.0.0.0 --port \"$PORT\" --no-open"]
+CMD ["sh", "-c", "uvicorn backend.api.main:app --host 0.0.0.0 --port ${PORT}"]

@@ -11,7 +11,7 @@ node_modules/
 dist/
 build/
 
-# Env & secrets — NEVER commit these
+# Env & secrets — NEVER commit
 .env
 .env.*
 !.env.example

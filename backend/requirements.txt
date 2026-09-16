@@ -1,11 +1,8 @@
-# SoldierIQ Cyber — backend (scan engine + dashboard viewer server)
+# SoldierIQ Cyber — backend
 #
-# The autonomous multi-agent pentest engine AND the viewer server + REST API
-# are provided by Strix (open-source, Apache-2.0). Pin the version the
-# white-label overlay + unblock patch target.
+# Strix provides the autonomous pentest engine (+ report PDF generation).
 strix-agent==1.6.2
 
-# --- Future custom backend code goes here (add as we build) ---
-# fastapi>=0.115
-# uvicorn[standard]>=0.29
-# agno>=2.5            # for a SoldierIQ-native agent layer / SA-data ingestion
+# Local control API + dashboard server (backend/api/main.py)
+fastapi>=0.115
+uvicorn[standard]>=0.29

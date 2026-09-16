@@ -1,0 +1,334 @@
+[
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "datetime",
+        "description": "datetime",
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "pathlib",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "secrets",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "secrets",
+        "description": "secrets",
+        "detail": "secrets",
+        "documentation": {}
+    },
+    {
+        "label": "subprocess",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "subprocess",
+        "description": "subprocess",
+        "detail": "subprocess",
+        "documentation": {}
+    },
+    {
+        "label": "threading",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "threading",
+        "description": "threading",
+        "detail": "threading",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "Depends",
+        "importPath": "fastapi",
+        "description": "fastapi",
+        "isExtraImport": true,
+        "detail": "fastapi",
+        "documentation": {}
+    },
+    {
+        "label": "FastAPI",
+        "importPath": "fastapi",
+        "description": "fastapi",
+        "isExtraImport": true,
+        "detail": "fastapi",
+        "documentation": {}
+    },
+    {
+        "label": "HTTPException",
+        "importPath": "fastapi",
+        "description": "fastapi",
+        "isExtraImport": true,
+        "detail": "fastapi",
+        "documentation": {}
+    },
+    {
+        "label": "HTMLResponse",
+        "importPath": "fastapi.responses",
+        "description": "fastapi.responses",
+        "isExtraImport": true,
+        "detail": "fastapi.responses",
+        "documentation": {}
+    },
+    {
+        "label": "JSONResponse",
+        "importPath": "fastapi.responses",
+        "description": "fastapi.responses",
+        "isExtraImport": true,
+        "detail": "fastapi.responses",
+        "documentation": {}
+    },
+    {
+        "label": "Response",
+        "importPath": "fastapi.responses",
+        "description": "fastapi.responses",
+        "isExtraImport": true,
+        "detail": "fastapi.responses",
+        "documentation": {}
+    },
+    {
+        "label": "HTTPBasic",
+        "importPath": "fastapi.security",
+        "description": "fastapi.security",
+        "isExtraImport": true,
+        "detail": "fastapi.security",
+        "documentation": {}
+    },
+    {
+        "label": "HTTPBasicCredentials",
+        "importPath": "fastapi.security",
+        "description": "fastapi.security",
+        "isExtraImport": true,
+        "detail": "fastapi.security",
+        "documentation": {}
+    },
+    {
+        "label": "BaseModel",
+        "importPath": "pydantic",
+        "description": "pydantic",
+        "isExtraImport": true,
+        "detail": "pydantic",
+        "documentation": {}
+    },
+    {
+        "label": "NewScan",
+        "kind": 6,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "class NewScan(BaseModel):\n    target: str\n    instruction: str | None = None\n    authorized: bool = False\n    max_budget: float | None = 10.0  # USD cap passed to the engine; None/0 = no cap\n@app.post(\"/api/scans\")\ndef start_scan(body: NewScan, _: bool = Depends(require_auth)):\n    if not body.authorized:\n        raise HTTPException(status_code=400, detail=\"You must confirm you are authorized to test this target.\")\n    target = body.target.strip()",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "require_auth",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def require_auth(cred: HTTPBasicCredentials = Depends(security)) -> bool:\n    ok = secrets.compare_digest(cred.username, DASH_USER) and secrets.compare_digest(\n        cred.password, DASH_PASSWORD\n    )\n    if not ok:\n        raise HTTPException(status_code=401, detail=\"Unauthorized\", headers={\"WWW-Authenticate\": \"Basic\"})\n    return True\ndef _load(run_dir: pathlib.Path, name: str, default=None):\n    p = run_dir / name\n    try:",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "summarize",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def summarize(run_dir: pathlib.Path) -> dict:\n    run = _load(run_dir, \"run.json\", {}) or {}\n    vulns = _load(run_dir, \"vulnerabilities.json\", []) or []\n    agents = _load(run_dir, \".state/agents.json\", {}) or {}\n    ti = (run.get(\"targets_info\") or [{}])[0]\n    target = (ti.get(\"details\") or {}).get(\"target_url\") or ti.get(\"original\") or \"—\"\n    def parse(x):\n        try:\n            return dt.datetime.fromisoformat(x)\n        except Exception:",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "index",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def index(_: bool = Depends(require_auth)):\n    if not INDEX.exists():\n        return HTMLResponse(\"<h1>SoldierIQ Cyber</h1><p>frontend not found</p>\", status_code=500)\n    return HTMLResponse(INDEX.read_text())\n@app.get(\"/api/runs\")\ndef list_runs(_: bool = Depends(require_auth)):\n    dirs = [d for d in RUNS_DIR.iterdir() if d.is_dir() and (d / \"run.json\").exists()]\n    dirs.sort(key=_mtime, reverse=True)\n    return [summarize(d) for d in dirs]\n@app.get(\"/api/runs/{run}/summary\")",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "list_runs",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def list_runs(_: bool = Depends(require_auth)):\n    dirs = [d for d in RUNS_DIR.iterdir() if d.is_dir() and (d / \"run.json\").exists()]\n    dirs.sort(key=_mtime, reverse=True)\n    return [summarize(d) for d in dirs]\n@app.get(\"/api/runs/{run}/summary\")\ndef run_summary(run: str, _: bool = Depends(require_auth)):\n    return summarize(_run_dir(run))\n@app.get(\"/api/runs/{run}/vulnerabilities\")\ndef run_vulns(run: str, _: bool = Depends(require_auth)):\n    return JSONResponse(_load(_run_dir(run), \"vulnerabilities.json\", []) or [])",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "run_summary",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def run_summary(run: str, _: bool = Depends(require_auth)):\n    return summarize(_run_dir(run))\n@app.get(\"/api/runs/{run}/vulnerabilities\")\ndef run_vulns(run: str, _: bool = Depends(require_auth)):\n    return JSONResponse(_load(_run_dir(run), \"vulnerabilities.json\", []) or [])\n@app.get(\"/api/runs/{run}/report.pdf\")\ndef run_pdf(run: str, _: bool = Depends(require_auth)):\n    run_dir = _run_dir(run)\n    try:\n        from strix.interface.viewer.report_pdf import generate_report_pdf",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "run_vulns",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def run_vulns(run: str, _: bool = Depends(require_auth)):\n    return JSONResponse(_load(_run_dir(run), \"vulnerabilities.json\", []) or [])\n@app.get(\"/api/runs/{run}/report.pdf\")\ndef run_pdf(run: str, _: bool = Depends(require_auth)):\n    run_dir = _run_dir(run)\n    try:\n        from strix.interface.viewer.report_pdf import generate_report_pdf\n        pdf = generate_report_pdf(run_dir)\n    except Exception as e:\n        raise HTTPException(status_code=409, detail=f\"report not ready: {e}\")",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "run_pdf",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def run_pdf(run: str, _: bool = Depends(require_auth)):\n    run_dir = _run_dir(run)\n    try:\n        from strix.interface.viewer.report_pdf import generate_report_pdf\n        pdf = generate_report_pdf(run_dir)\n    except Exception as e:\n        raise HTTPException(status_code=409, detail=f\"report not ready: {e}\")\n    return Response(\n        content=pdf,\n        media_type=\"application/pdf\",",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "run_transcript",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def run_transcript(run: str, after: int = 0, _: bool = Depends(require_auth)):\n    \"\"\"Live agent activity: reasoning ('chat') + tool calls ('tool').\n    `after` returns only events past that index so a polling client streams\n    incrementally instead of refetching the whole (large) transcript.\n    \"\"\"\n    run_dir = _run_dir(run)\n    try:\n        from strix.interface.viewer.transcript import build_run_state\n        state = build_run_state(run_dir)\n    except Exception:",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "scan_status",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def scan_status(run: str, _: bool = Depends(require_auth)):\n    s = summarize(_run_dir(run))\n    return {\"run_name\": run, \"status\": s[\"status\"], \"total_findings\": s[\"total_findings\"], \"severity_counts\": s[\"severity_counts\"], \"agents\": s[\"agents\"]}\nclass NewScan(BaseModel):\n    target: str\n    instruction: str | None = None\n    authorized: bool = False\n    max_budget: float | None = 10.0  # USD cap passed to the engine; None/0 = no cap\n@app.post(\"/api/scans\")\ndef start_scan(body: NewScan, _: bool = Depends(require_auth)):",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "start_scan",
+        "kind": 2,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "def start_scan(body: NewScan, _: bool = Depends(require_auth)):\n    if not body.authorized:\n        raise HTTPException(status_code=400, detail=\"You must confirm you are authorized to test this target.\")\n    target = body.target.strip()\n    if not re.match(r\"^https?://[^\\s]+$\", target):\n        raise HTTPException(status_code=400, detail=\"Target must be an http(s) URL you own/are authorized to test.\")\n    if not os.environ.get(\"STRIX_LLM\") or not (os.environ.get(\"LLM_API_KEY\") or os.environ.get(\"LLM_API_BASE\")):\n        raise HTTPException(status_code=500, detail=\"Server missing STRIX_LLM / LLM_API_KEY. Set them before launching scans.\")\n    instruction = (body.instruction or \"\").strip() or (\n        \"Authorized security assessment. Perform a thorough OWASP Top 10 assessment and validate findings with working proof-of-concepts.\"",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "ROOT",
+        "kind": 5,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "ROOT = pathlib.Path(__file__).resolve().parents[2]\nRUNS_DIR = pathlib.Path(os.environ.get(\"RUNS_DIR\", ROOT / \"backend\" / \"strix_runs\"))\nINDEX = ROOT / \"frontend\" / \"app\" / \"index.html\"\nDASH_USER = os.environ.get(\"DASH_USER\", \"admin\")\nDASH_PASSWORD = os.environ.get(\"DASH_PASSWORD\", \"soldieriq\")\nRUNS_DIR.mkdir(parents=True, exist_ok=True)\napp = FastAPI(title=\"SoldierIQ Cyber\")\nsecurity = HTTPBasic()\n# run_name -> subprocess.Popen for scans launched by this server\nRUNNING: dict[str, subprocess.Popen] = {}",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "RUNS_DIR",
+        "kind": 5,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "RUNS_DIR = pathlib.Path(os.environ.get(\"RUNS_DIR\", ROOT / \"backend\" / \"strix_runs\"))\nINDEX = ROOT / \"frontend\" / \"app\" / \"index.html\"\nDASH_USER = os.environ.get(\"DASH_USER\", \"admin\")\nDASH_PASSWORD = os.environ.get(\"DASH_PASSWORD\", \"soldieriq\")\nRUNS_DIR.mkdir(parents=True, exist_ok=True)\napp = FastAPI(title=\"SoldierIQ Cyber\")\nsecurity = HTTPBasic()\n# run_name -> subprocess.Popen for scans launched by this server\nRUNNING: dict[str, subprocess.Popen] = {}\nSEV_ORDER = [\"critical\", \"high\", \"medium\", \"low\", \"info\"]",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "INDEX",
+        "kind": 5,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "INDEX = ROOT / \"frontend\" / \"app\" / \"index.html\"\nDASH_USER = os.environ.get(\"DASH_USER\", \"admin\")\nDASH_PASSWORD = os.environ.get(\"DASH_PASSWORD\", \"soldieriq\")\nRUNS_DIR.mkdir(parents=True, exist_ok=True)\napp = FastAPI(title=\"SoldierIQ Cyber\")\nsecurity = HTTPBasic()\n# run_name -> subprocess.Popen for scans launched by this server\nRUNNING: dict[str, subprocess.Popen] = {}\nSEV_ORDER = [\"critical\", \"high\", \"medium\", \"low\", \"info\"]\ndef require_auth(cred: HTTPBasicCredentials = Depends(security)) -> bool:",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "DASH_USER",
+        "kind": 5,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "DASH_USER = os.environ.get(\"DASH_USER\", \"admin\")\nDASH_PASSWORD = os.environ.get(\"DASH_PASSWORD\", \"soldieriq\")\nRUNS_DIR.mkdir(parents=True, exist_ok=True)\napp = FastAPI(title=\"SoldierIQ Cyber\")\nsecurity = HTTPBasic()\n# run_name -> subprocess.Popen for scans launched by this server\nRUNNING: dict[str, subprocess.Popen] = {}\nSEV_ORDER = [\"critical\", \"high\", \"medium\", \"low\", \"info\"]\ndef require_auth(cred: HTTPBasicCredentials = Depends(security)) -> bool:\n    ok = secrets.compare_digest(cred.username, DASH_USER) and secrets.compare_digest(",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "DASH_PASSWORD",
+        "kind": 5,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "DASH_PASSWORD = os.environ.get(\"DASH_PASSWORD\", \"soldieriq\")\nRUNS_DIR.mkdir(parents=True, exist_ok=True)\napp = FastAPI(title=\"SoldierIQ Cyber\")\nsecurity = HTTPBasic()\n# run_name -> subprocess.Popen for scans launched by this server\nRUNNING: dict[str, subprocess.Popen] = {}\nSEV_ORDER = [\"critical\", \"high\", \"medium\", \"low\", \"info\"]\ndef require_auth(cred: HTTPBasicCredentials = Depends(security)) -> bool:\n    ok = secrets.compare_digest(cred.username, DASH_USER) and secrets.compare_digest(\n        cred.password, DASH_PASSWORD",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "kind": 5,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "app = FastAPI(title=\"SoldierIQ Cyber\")\nsecurity = HTTPBasic()\n# run_name -> subprocess.Popen for scans launched by this server\nRUNNING: dict[str, subprocess.Popen] = {}\nSEV_ORDER = [\"critical\", \"high\", \"medium\", \"low\", \"info\"]\ndef require_auth(cred: HTTPBasicCredentials = Depends(security)) -> bool:\n    ok = secrets.compare_digest(cred.username, DASH_USER) and secrets.compare_digest(\n        cred.password, DASH_PASSWORD\n    )\n    if not ok:",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "security",
+        "kind": 5,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "security = HTTPBasic()\n# run_name -> subprocess.Popen for scans launched by this server\nRUNNING: dict[str, subprocess.Popen] = {}\nSEV_ORDER = [\"critical\", \"high\", \"medium\", \"low\", \"info\"]\ndef require_auth(cred: HTTPBasicCredentials = Depends(security)) -> bool:\n    ok = secrets.compare_digest(cred.username, DASH_USER) and secrets.compare_digest(\n        cred.password, DASH_PASSWORD\n    )\n    if not ok:\n        raise HTTPException(status_code=401, detail=\"Unauthorized\", headers={\"WWW-Authenticate\": \"Basic\"})",
+        "detail": "backend.api.main",
+        "documentation": {}
+    },
+    {
+        "label": "SEV_ORDER",
+        "kind": 5,
+        "importPath": "backend.api.main",
+        "description": "backend.api.main",
+        "peekOfCode": "SEV_ORDER = [\"critical\", \"high\", \"medium\", \"low\", \"info\"]\ndef require_auth(cred: HTTPBasicCredentials = Depends(security)) -> bool:\n    ok = secrets.compare_digest(cred.username, DASH_USER) and secrets.compare_digest(\n        cred.password, DASH_PASSWORD\n    )\n    if not ok:\n        raise HTTPException(status_code=401, detail=\"Unauthorized\", headers={\"WWW-Authenticate\": \"Basic\"})\n    return True\ndef _load(run_dir: pathlib.Path, name: str, default=None):\n    p = run_dir / name",
+        "detail": "backend.api.main",
+        "documentation": {}
+    }
+]

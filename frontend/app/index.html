@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SoldierIQ Cyber</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2310b981' d='M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5z'/%3E%3C/svg%3E" />
+<style>
+  :root{--bg:#0a0c10;--panel:#12151c;--panel2:#171b24;--border:#232838;--text:#e6e9ef;--muted:#8b93a7;--accent:#10b981;
+    --crit:#ef4444;--high:#f97316;--med:#eab308;--low:#38bdf8;--info:#64748b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px 64px}
+  header{position:sticky;top:0;z-index:20;background:rgba(10,12,16,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .bar{max-width:1060px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),#059669);display:grid;place-items:center;color:#04120c;font-weight:800}
+  .brand{font-weight:700;font-size:16px}.pill{font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 8px}
+  .spacer{flex:1}
+  select,input,textarea{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font:inherit}
+  select{max-width:230px}
+  .btn{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#04120c;font-weight:700;border:none;border-radius:9px;padding:9px 13px;cursor:pointer;text-decoration:none;font-size:13px}
+  .btn.sec{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+  .btn:hover{filter:brightness(1.08)}.btn[disabled]{opacity:.5;cursor:not-allowed}
+  h1{font-size:22px;margin:26px 0 4px}
+  .target{color:var(--muted);font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .meta{color:var(--muted);font-size:13px;margin-top:6px}.meta b{color:var(--text);font-weight:600}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:22px 0}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .stat .n{font-size:24px;font-weight:800}.stat .l{color:var(--muted);font-size:12px;margin-top:2px}
+  .sev-crit{color:var(--crit)}.sev-high{color:var(--high)}.sev-med{color:var(--med)}.sev-low{color:var(--low)}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin:22px 0 14px}
+  .tab{padding:9px 14px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13px;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.on{color:var(--text);border-bottom-color:var(--accent)}
+  .tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:6px;animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .summary{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;color:#c9cfdb;white-space:pre-wrap;margin-bottom:14px}
+  .section-title{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:6px 0 10px}
+  .finding{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+  .fhead{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}.fhead:hover{background:var(--panel2)}
+  .badge{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .b-crit{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
+  .b-high{background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.35)}
+  .b-med{background:rgba(234,179,8,.13);color:#fde047;border:1px solid rgba(234,179,8,.3)}
+  .b-low{background:rgba(56,189,248,.13);color:#7dd3fc;border:1px solid rgba(56,189,248,.3)}
+  .b-info{background:rgba(100,116,139,.15);color:#cbd5e1;border:1px solid rgba(100,116,139,.3)}
+  .ftitle{flex:1;font-weight:600}.fmeta{color:var(--muted);font-size:12px;white-space:nowrap}
+  .chev{color:var(--muted);transition:transform .15s}.finding.open .chev{transform:rotate(90deg)}
+  .fbody{display:none;padding:4px 16px 18px;border-top:1px solid var(--border)}.finding.open .fbody{display:block}
+  .fbody h4{margin:16px 0 5px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+  .fbody p{margin:0;color:#c9cfdb}
+  pre{background:#0b0e13;border:1px solid var(--border);border-radius:9px;padding:12px;overflow:auto;font:12px/1.5 ui-monospace,Menlo,monospace;color:#d6deea;margin:6px 0 0}
+  ul{margin:6px 0 0;padding-left:18px;color:#c9cfdb}
+  .kv{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:12px}
+  .banner{display:flex;align-items:center;gap:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px 16px;margin:18px 0}
+  .spin{width:16px;height:16px;border:2px solid rgba(16,185,129,.3);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;flex:none}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* roster + activity feed */
+  .roster{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .achip{display:inline-flex;align-items:center;gap:6px;font-size:12px;border:1px solid var(--border);background:var(--panel);border-radius:999px;padding:4px 10px}
+  .adot{width:7px;height:7px;border-radius:50%}
+  .st-running{color:var(--accent)}.st-completed{color:var(--muted)}
+  .feed{display:flex;flex-direction:column;gap:8px}
+  .ev{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+  .ev .top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .who{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--border)}
+  .ev.think{border-left:3px solid #a78bfa}
+  .ev.tool{border-left:3px solid var(--accent)}
+  .ev .content{color:#c9cfdb;white-space:pre-wrap;font-size:13px}
+  .toolname{font-family:ui-monospace,Menlo,monospace;font-weight:700;color:var(--accent);font-size:13px}
+  .args{color:var(--muted);font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  .toolres{margin-top:6px;cursor:pointer;color:var(--muted);font-size:12px}
+  .toolres[open]{color:var(--text)}
+  .foot{color:var(--muted);font-size:12px;margin-top:30px;text-align:center}
+  .empty{padding:60px 0;text-align:center;color:var(--muted)}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:50;padding:20px}.overlay.on{display:grid}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;max-width:520px;width:100%;padding:22px}
+  .modal h3{margin:0 0 4px;font-size:18px}.modal .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .field{margin-bottom:14px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .field input,.field textarea{width:100%}
+  .check{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:#c9cfdb;background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:11px}
+  .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+  .err{color:#fca5a5;font-size:13px;margin-top:10px;min-height:16px}
+</style>
+</head>
+<body>
+  <header><div class="bar">
+    <div class="logo">S</div><div class="brand">SoldierIQ Cyber</div>
+    <span class="pill" id="statusPill">Local</span>
+    <div class="spacer"></div>
+    <select id="runSelect" title="Select a run" onchange="selectRun(this.value)"></select>
+    <button class="btn" onclick="openModal()">＋ New Pentest</button>
+    <a class="btn sec" id="pdfLink" href="#" download>⬇ PDF</a>
+  </div></header>
+
+  <div class="wrap"><div id="root"><div class="empty">Loading…</div></div>
+    <div class="foot">SoldierIQ Cyber · runs execute locally in an isolated sandbox · authorized targets only</div>
+  </div>
+
+  <div class="overlay" id="overlay"><div class="modal">
+    <h3>Start a new pentest</h3>
+    <div class="sub">The AI agents assess the target in an isolated sandbox and validate findings with real PoCs. Watch them work live in the Activity tab.</div>
+    <div class="field"><label>Target URL</label><input id="mTarget" placeholder="http://host.docker.internal:3001" /></div>
+    <div class="field"><label>Instructions (optional)</label><textarea id="mInstr" rows="3" placeholder="e.g. Focus on auth, IDOR and SQL injection"></textarea></div>
+    <div class="field"><label>Budget cap (USD)</label><input id="mBudget" type="number" min="1" step="1" value="10" /><div style="color:var(--muted);font-size:11px;margin-top:4px">The scan stops automatically when spend hits this cap. A deep run is typically $8–15.</div></div>
+    <label class="check"><input type="checkbox" id="mAuth" /> <span>I own this target or have explicit written authorization to test it. Unauthorized testing is illegal.</span></label>
+    <div class="err" id="mErr"></div>
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancel</button><button class="btn" id="mStart" onclick="startScan()">Start scan</button></div>
+  </div></div>
+
+<script>
+const SEV=["critical","high","medium","low","info"];
+const O=location.origin;
+const PALETTE=["#10b981","#0ea5e9","#a78bfa","#f97316","#eab308","#f43f5e","#22d3ee","#f472b6","#84cc16","#facc15","#38bdf8","#c084fc"];
+const esc=s=>String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const fmtDur=s=>s==null?"—":(s>=3600?Math.floor(s/3600)+"h "+Math.floor(s%3600/60)+"m":Math.floor(s/60)+"m "+(s%60)+"s");
+const fmtNum=n=>n==null?"—":Number(n).toLocaleString();
+const api=(p)=>fetch(O+p).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()});
+let CUR=null, TAB="findings", CURSOR=0, poller=null, AGENTS={}, LASTSTAT=null;
+
+function color(id){let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))>>>0;return PALETTE[h%PALETTE.length];}
+
+/* ---------- findings ---------- */
+function listify(v){return Array.isArray(v)?"<ul>"+v.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>":"<p>"+esc(v)+"</p>"}
+function findingCard(v){
+  const sev=String(v.severity||"info").toLowerCase(), cvss=v.cvss!=null?("CVSS "+v.cvss):"";
+  const parts=[], add=(h,val)=>{if(val!=null&&val!==""&&!(Array.isArray(val)&&!val.length))parts.push("<h4>"+h+"</h4>"+listify(val))};
+  add("Description",v.description);add("Impact",v.impact);add("Technical analysis",v.technical_analysis);
+  if(v.poc_description)parts.push("<h4>Proof of Concept</h4><p>"+esc(v.poc_description)+"</p>");
+  if(v.poc_script_code)parts.push("<pre>"+esc(v.poc_script_code)+"</pre>");
+  add("Remediation",v.remediation_steps);
+  return `<div class="finding"><div class="fhead" onclick="this.parentNode.classList.toggle('open')">
+    <span class="badge b-${sev}">${esc(sev)}</span><span class="ftitle">${esc(v.title||"Finding")}</span>
+    <span class="fmeta">${esc(cvss)}</span><span class="chev">›</span></div><div class="fbody">${parts.join("")}</div></div>`;
+}
+
+/* ---------- activity ---------- */
+function agentName(id){return (AGENTS[id]&&AGENTS[id].name)||"Agent"}
+function eventRow(e){
+  const who=`<span class="who" style="color:${color(e.agent_id)}">${esc(agentName(e.agent_id))}</span>`;
+  if(e.type==="chat"){
+    const d=e.data||{}; if(d.role!=="assistant")return ""; const c=(d.content||"").trim(); if(!c)return "";
+    return `<div class="ev think"><div class="top">${who}<span style="color:#a78bfa;font-size:12px">💭 reasoning</span></div><div class="content">${esc(c)}</div></div>`;
+  }
+  if(e.type==="tool"){
+    const d=e.data||{}; let args="";try{args=JSON.stringify(d.args||{});}catch(_){}
+    if(args.length>120)args=args.slice(0,120)+"…";
+    let res=""; try{res=typeof d.result==="string"?d.result:JSON.stringify(d.result,null,1);}catch(_){res=String(d.result)}
+    const resBlock=res?`<details class="toolres"><summary>result${d.status?" · "+esc(d.status):""}</summary><pre>${esc(res.slice(0,4000))}</pre></details>`:"";
+    return `<div class="ev tool"><div class="top">${who}<span class="toolname">🔧 ${esc(d.tool_name||"tool")}</span></div><div class="args">${esc(args)}</div>${resBlock}</div>`;
+  }
+  return "";
+}
+function renderRoster(agents){
+  return '<div class="roster">'+agents.map(a=>`<span class="achip"><span class="adot" style="background:${color(a.id)}"></span>${esc(a.name)} <span class="st-${a.status}">${a.status==="running"?"● running":a.status}</span></span>`).join("")+'</div>';
+}
+async function loadActivity(reset){
+  if(reset){CURSOR=0;}
+  let t; try{t=await api(`/api/runs/${encodeURIComponent(CUR)}/transcript?after=${CURSOR}`)}catch(e){return}
+  (t.agents||[]).forEach(a=>AGENTS[a.id]=a);
+  const roster=document.getElementById("roster"); if(roster)roster.innerHTML=renderRoster(t.agents||[]);
+  const feed=document.getElementById("feed"); if(!feed)return;
+  if(reset)feed.innerHTML="";
+  const html=(t.events||[]).map(eventRow).join("");
+  if(html){const atBottom=Math.abs(window.scrollY+window.innerHeight-document.body.scrollHeight)<200;
+    feed.insertAdjacentHTML("beforeend",html); if(atBottom)window.scrollTo(0,document.body.scrollHeight);}
+  CURSOR=t.total||CURSOR;
+}
+
+/* ---------- shell / tabs ---------- */
+function statsHTML(s){const c=s.severity_counts||{};
+  return [["crit","Critical",c.critical||0],["high","High",c.high||0],["med","Medium",c.medium||0],["low","Low",(c.low||0)+(c.info||0)]]
+    .map(([k,l,n])=>`<div class="stat"><div class="n sev-${k}">${n}</div><div class="l">${l}</div></div>`).join("")
+    +`<div class="stat"><div class="n">${s.total_findings??0}</div><div class="l">Findings</div></div>`
+    +`<div class="stat"><div class="n">${s.agents??"—"}</div><div class="l">AI agents</div></div>`;
+}
+function render(s,v){
+  const running=s.status==="running";
+  document.getElementById("statusPill").textContent=s.status?s.status[0].toUpperCase()+s.status.slice(1):"Local";
+  if(running&&TAB==="findings"&&!(v&&v.length))TAB="activity"; // default to activity for a fresh live run
+  document.getElementById("root").innerHTML=`
+    <h1>Penetration Assessment</h1>
+    <div class="target">${esc(s.target||"")}</div>
+    <div class="meta"><b>${esc(s.mode||"deep")}</b> scan · <b id="mDur">${running?"in progress":fmtDur(s.duration_seconds)}</b>${s.requests?` · <b>${fmtNum(s.requests)}</b> requests`:""}</div>
+    ${running?`<div class="banner"><div class="spin"></div><div>Scanning <b>${esc(s.target)}</b> — the agent team is working. Watch it live in <b>Activity</b>.</div></div>`:""}
+    <div class="stats" id="stats">${statsHTML(s)}</div>
+    ${s.executive_summary?`<div class="section-title">Executive summary</div><div class="summary">${esc(s.executive_summary)}</div>`:""}
+    <div class="tabs">
+      <div class="tab ${TAB==="findings"?"on":""}" onclick="setTab('findings')">Findings (${v?v.length:0})</div>
+      <div class="tab ${TAB==="activity"?"on":""}" onclick="setTab('activity')">${running?'<span class="dot"></span>':''}Activity</div>
+    </div>
+    <div id="tabContent"></div>`;
+  renderTab(v||[]);
+}
+function renderTab(v){
+  const c=document.getElementById("tabContent");
+  if(TAB==="findings"){
+    v.sort((a,b)=>SEV.indexOf(String(a.severity).toLowerCase())-SEV.indexOf(String(b.severity).toLowerCase()));
+    c.innerHTML=v.length?v.map(findingCard).join(""):'<div class="empty">'+(LASTSTAT&&LASTSTAT.status==="running"?"No findings yet — recon in progress…":"No findings.")+'</div>';
+  }else{
+    c.innerHTML='<div id="roster"></div><div class="feed" id="feed"></div>';
+    loadActivity(true);
+  }
+}
+function setTab(t){TAB=t;const v=window.__vulns||[];render(LASTSTAT,v);}
+
+/* ---------- data loading ---------- */
+async function loadRuns(sel){
+  let runs=[];try{runs=await api("/api/runs")}catch(e){}
+  const sB=document.getElementById("runSelect");
+  sB.innerHTML=runs.map(r=>`<option value="${esc(r.run_name)}">${esc(r.target)} · ${r.status==="running"?"scanning…":(r.total_findings+" findings")}</option>`).join("");
+  if(!runs.length){document.getElementById("root").innerHTML='<div class="empty">No runs yet. Click <b>＋ New Pentest</b> to start one.</div>';document.getElementById("pdfLink").style.display="none";return null;}
+  const pick=sel&&runs.find(r=>r.run_name===sel)?sel:runs[0].run_name;sB.value=pick;return pick;
+}
+async function selectRun(name){
+  if(!name)return;CUR=name;AGENTS={};if(poller){clearInterval(poller);poller=null}
+  document.getElementById("pdfLink").href=O+"/api/runs/"+encodeURIComponent(name)+"/report.pdf";document.getElementById("pdfLink").style.display="";
+  let s,v=[];try{s=await api("/api/runs/"+encodeURIComponent(name)+"/summary");v=await api("/api/runs/"+encodeURIComponent(name)+"/vulnerabilities")}catch(e){document.getElementById("root").innerHTML='<div class="empty">Could not load run.</div>';return}
+  v=Array.isArray(v)?v:[];window.__vulns=v;LASTSTAT=s;render(s,v);
+  if(s.status==="running")startPolling(name);
+}
+function startPolling(name){
+  if(poller)clearInterval(poller);
+  poller=setInterval(async()=>{
+    let st;try{st=await api("/api/runs/"+encodeURIComponent(name)+"/summary")}catch(e){return}
+    LASTSTAT=st;
+    // update stats + duration in place (don't wipe the activity feed)
+    const stEl=document.getElementById("stats");if(stEl)stEl.innerHTML=statsHTML(st);
+    if(TAB==="activity"){await loadActivity(false);}
+    if(st.status!=="running"){clearInterval(poller);poller=null;await loadRuns(name);selectRun(name);return;}
+  },5000);
+}
+
+/* ---------- new scan ---------- */
+function openModal(){document.getElementById("mErr").textContent="";document.getElementById("overlay").classList.add("on")}
+function closeModal(){document.getElementById("overlay").classList.remove("on")}
+async function startScan(){
+  const btn=document.getElementById("mStart"),err=document.getElementById("mErr");
+  const budget=parseFloat(document.getElementById("mBudget").value);
+  const body={target:document.getElementById("mTarget").value.trim(),instruction:document.getElementById("mInstr").value.trim(),authorized:document.getElementById("mAuth").checked,max_budget:(isFinite(budget)&&budget>0)?budget:null};
+  err.textContent="";btn.disabled=true;btn.textContent="Starting…";
+  try{
+    const r=await fetch(O+"/api/scans",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||("HTTP "+r.status));
+    closeModal();TAB="activity";await loadRuns(d.run_name);selectRun(d.run_name);
+  }catch(e){err.textContent=String(e.message||e)}finally{btn.disabled=false;btn.textContent="Start scan"}
+}
+
+(async()=>{const pick=await loadRuns();if(pick)selectRun(pick);})();
+</script>
+</body>
+</html>

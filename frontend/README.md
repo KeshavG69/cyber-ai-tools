@@ -1,28 +1,19 @@
-# frontend — dashboard UI
+# frontend
 
-## Today: white-label overlay
+The custom **SoldierIQ Cyber** dashboard — a single self-contained page, no build
+step, no framework.
 
-`whitelabel/index.html` is a drop-in replacement for the Strix viewer's
-`static/index.html`. Loaded over the existing viewer, it:
+- `app/index.html` — talks to the backend API (`../backend/api/main.py`):
+  - a **run switcher** (header dropdown) listing runs from `GET /api/runs`
+  - **＋ New Pentest** → a form (target URL, instructions, authorization checkbox)
+    that `POST`s to `/api/scans`, then polls `/api/scans/{run}/status` and updates
+    live as the scan runs
+  - the overview, severity stats, and an expandable **findings list** (description /
+    impact / technical analysis / PoC / remediation / CVSS)
+  - a **Download PDF** link (`/api/runs/{run}/report.pdf`)
 
-- rebrands **Strix → SoldierIQ Cyber** (title, header, toasts) via a MutationObserver;
-- removes every `strix.ai` link + blocks navigation/`window.open` to them;
-- hides all cloud/enterprise/upsell UI ("Run a pentest in Cloud", "Run in the cloud",
-  "Try Enterprise", cloud/team nav, feedback link);
-- hides the email one-time-code form (the server-side unblock patch in
-  `../backend/patches/unblock_history.py` makes it unnecessary anyway).
+It is served by the FastAPI app at `/` (behind basic-auth). There is no Strix
+viewer, token, or email — just our UI reading plain JSON from our own API.
 
-It is applied to the running viewer by `../backend/scripts/apply_whitelabel.sh`
-(local) and by the root `Dockerfile` (image build).
-
-## Next: a custom Next.js dashboard
-
-The plan is to replace the overlay with a real **Next.js** app here that consumes
-the viewer's REST API directly (see `../backend/README.md` for the endpoints:
-`/api/run`, `/api/runs`, `/api/transcript`, `/api/vulnerabilities`, `/api/report`).
-That gives full control over branding, layout, and merging in SoldierIQ **SA data**
-(TAK / knowledge base) alongside the pentest view — without patching a compiled bundle.
-
-When that exists, scaffold it in this folder (e.g. `frontend/app/`), point it at the
-backend API base URL via an env var, and update the root `Dockerfile` (or add a
-second service) to build and serve it.
+A future richer frontend (e.g. Next.js, live agent-transcript streaming) would
+consume the same API and can replace this file.
