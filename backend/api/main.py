@@ -4,7 +4,7 @@ Runs on a Docker host (your Mac). Serves the dashboard, lists runs, launches new
 pentests with the Strix engine, and serves each run's data + report PDF.
 
 Run it:
-    export STRIX_LLM="openrouter/z-ai/glm-5.3"
+    export STRIX_LLM="openrouter/z-ai/glm-5.3-flash"
     export LLM_API_KEY="..."            # or LLM_API_BASE for a local model
     export DASH_PASSWORD="..."          # optional (default: soldieriq)
     uvicorn backend.api.main:app --host 0.0.0.0 --port 8080
@@ -45,7 +45,7 @@ except Exception:
 # values. Default it (overridable by any real env var / OrionHub MANUAL value) so
 # scans can launch — and so the strix subprocess, which reads STRIX_LLM from the
 # environment, inherits it. LLM_API_KEY must still be provided by the platform.
-os.environ.setdefault("STRIX_LLM", "openrouter/z-ai/glm-5.3")
+os.environ.setdefault("STRIX_LLM", "openrouter/z-ai/glm-5.3-flash")
 
 # Paths are relative to this package so the service is self-contained (works both
 # in local dev and when OrionHub builds the backend/ folder as the build context).

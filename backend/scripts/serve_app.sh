@@ -4,7 +4,7 @@
 #
 # Config comes from a gitignored `.env` at the repo root (copy .env.example),
 # or from the shell environment. Required to launch scans:
-#   STRIX_LLM      e.g. openrouter/z-ai/glm-5.3   (or ollama/llama3 for local GPU)
+#   STRIX_LLM      e.g. openrouter/z-ai/glm-5.3-flash   (or ollama/llama3 for local GPU)
 #   LLM_API_KEY    your provider key              (or LLM_API_BASE for a local model)
 # Optional: DASH_USER (default admin), DASH_PASSWORD (default soldieriq).
 #
@@ -26,7 +26,7 @@ fi
 # Load .env if present (never committed — see .gitignore)
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
 
-: "${STRIX_LLM:?set STRIX_LLM in .env (e.g. openrouter/z-ai/glm-5.3) to enable launching scans}"
+: "${STRIX_LLM:?set STRIX_LLM in .env (e.g. openrouter/z-ai/glm-5.3-flash) to enable launching scans}"
 : "${LLM_API_KEY:?set LLM_API_KEY in .env (or LLM_API_BASE for a local model)}"
 
 echo "SoldierIQ Cyber app on http://127.0.0.1:${PORT}  (login: ${DASH_USER:-admin})"
